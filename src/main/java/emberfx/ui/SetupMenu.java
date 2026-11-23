@@ -10,7 +10,6 @@ import emberfx.config.Layouts;
 import emberfx.topics.Topics;
 import javafx.geometry.Side;
 import javafx.scene.Node;
-import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
@@ -38,25 +37,15 @@ final class SetupMenu {
     private final DashboardView dashboard;
     private final List<DashModule> modules;
     private final ContextMenu menu = new ContextMenu();
+    private final MenuItem addTile = Forms.item("Add tile...", this::addTile);
 
     SetupMenu(DashboardView dashboard, List<DashModule> modules) {
         this.dashboard = dashboard;
         this.modules = modules;
 
-        MenuItem addTile = Forms.item("Add tile...", this::addTile);
-        CheckMenuItem lock = new CheckMenuItem("Lock layout");
-        lock.setSelected(Config.locked());
-        lock.setOnAction(e -> {
-            Config.root().put("locked", lock.isSelected());
-            Config.save();
-            dashboard.refreshTabs();
-        });
-        addTile.disableProperty().bind(lock.selectedProperty());
-
         menu.getItems().addAll(
             addTile,
             Forms.item("Link robot project...", this::linkProject),
-            lock,
             new SeparatorMenuItem(),
             Forms.item("Load layout from robot...", this::loadLayoutFromRobot),
             Forms.item("Save layout to robot project", this::saveLayoutToProject),
@@ -76,7 +65,10 @@ final class SetupMenu {
         if (!moduleSettings.getItems().isEmpty()) menu.getItems().add(moduleSettings);
     }
 
-    void show(Node anchor) { menu.show(anchor, Side.BOTTOM, 0, 4); }
+    void show(Node anchor) {
+        addTile.setDisable(Config.locked()); // tiles are added in edit mode
+        menu.show(anchor, Side.RIGHT, 8, 0);
+    }
 
     /** For team modules (ModuleContext.addMenuItem). */
     void add(MenuItem item) { menu.getItems().add(item); }
@@ -87,7 +79,7 @@ final class SetupMenu {
 
     private void addTile() {
         TabPage page = dashboard.selectedPage();
-        if (page != null) page.addNew(Double.NaN, Double.NaN);
+        if (page != null) page.addNew(null, Double.NaN, Double.NaN);
         else Forms.info("Switch to one of your own tabs to add a tile.");
     }
 
@@ -176,7 +168,7 @@ final class SetupMenu {
 
     // ---- settings ----
 
-    private void showSettings() {
+    void showSettings() {
         List<Forms.Field> fields = new ArrayList<>(List.of(
             Forms.text("Team number", Integer.toString(Config.team())),
             Forms.text("Window title", Config.title()),

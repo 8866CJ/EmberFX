@@ -4,12 +4,15 @@ import emberfx.topics.FoundTopic;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -51,7 +54,8 @@ public final class TopicList extends VBox {
 
             @Override protected void updateItem(FoundTopic t, boolean empty) {
                 super.updateItem(t, empty);
-                setText(empty || t == null ? null : compact ? compactText(t) : fullText(t));
+                setText(empty || t == null || compact ? null : fullText(t));
+                setGraphic(empty || t == null || !compact ? null : compactRow(t));
             }
         });
         VBox.setVgrow(list, Priority.ALWAYS);
@@ -80,8 +84,26 @@ public final class TopicList extends VBox {
         return t.path() + "    " + type(t) + "    " + t.source() + (t.robotReads() ? "  (robot reads this)" : "");
     }
 
-    private static String compactText(FoundTopic t) {
-        return t.path() + "\n    " + type(t) + (t.robotReads() ? ", robot reads" : "") + (t.source().startsWith("robot") ? "" : ", in code only");
+    /** Type marker, then the topic's name over its path and type, like a file tree entry. */
+    private static HBox compactRow(FoundTopic t) {
+        Label icon = Style.styled(new Label(glyph(t.type())), "cell-icon");
+        Label name = new Label(t.name().isEmpty() ? t.path() : t.name());
+        Label detail = Style.styled(new Label(t.path() + "  " + type(t) + (t.robotReads() ? ", robot reads" : "")
+            + (t.source().startsWith("robot") ? "" : ", in code only")), "cell-detail");
+        HBox row = new HBox(6, icon, new VBox(1, name, detail));
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    /** Short type marker: # number, ab text, on boolean, [] array, {} anything else. */
+    private static String glyph(String type) {
+        if (type.endsWith("[]")) return "[]";
+        return switch (type) {
+            case "double", "float", "int" -> "#";
+            case "string" -> "ab";
+            case "boolean" -> "on";
+            default -> "{}";
+        };
     }
 
     private static String type(FoundTopic t) { return t.type().isEmpty() ? "?" : t.type(); }

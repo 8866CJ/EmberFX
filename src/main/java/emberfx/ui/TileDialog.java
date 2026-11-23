@@ -52,7 +52,7 @@ public final class TileDialog {
         type.setValue(current != null ? current : TileTypes.find("text"));
         topic.setText(json.path("topic").asText(""));
         title.setText(json.path("title").asText(""));
-        typeChosen = !isNew;
+        typeChosen = !isNew || json.has("type"); // a type dragged from the Tiles panel counts as chosen
         titleChosen = !isNew;
         showOptions();
         type.valueProperty().addListener((obs, o, n) -> { typeChosen = true; showOptions(); });

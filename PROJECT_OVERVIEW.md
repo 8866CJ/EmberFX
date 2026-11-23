@@ -10,7 +10,7 @@ Run `EmberFX-Setup-<version>.exe`.
 - Java is included.
 - Installing a newer version upgrades in place. Your settings and logs in `%USERPROFILE%\.emberfx` are kept on upgrade and uninstall.
 
-To make the Driver Station open it, close the DS and choose **Setup > Use as Driver Station dashboard**.
+To make the Driver Station open it, close the DS and choose **Menu > Use as Driver Station dashboard**.
 
 No install: `EmberFX.zip` is the same app as a portable folder.
 
@@ -18,10 +18,10 @@ No install: `EmberFX.zip` is the same app as a portable folder.
 
 ## First run
 
-1. **Setup > Settings:** enter your team number. The robot address becomes 10.TE.AM.2, and log files are named `frc<team>_...`.
+1. **Settings** (bottom of the left bar): enter your team number. The robot address becomes 10.TE.AM.2, and log files are named `frc<team>_...`.
 2. Pick **Physical Robot**, **Localhost** (simulation) or **Custom...** in the top right. The pill turns green when connected, and the tiles dim while disconnected.
-3. **Setup > Link robot project:** pick your robot code folder. The dashboard reads your code for topic names, so you can build tiles before the robot is even on.
-4. Click **Topics** (top right of the tab row) and drag topics onto the tab. Each one becomes a matching tile. Double-clicking a topic also adds it, and right-clicking the canvas opens the full Add tile dialog.
+3. **Menu > Link robot project:** pick your robot code folder. The dashboard reads your code for topic names, so you can build tiles before the robot is even on.
+4. Click the pencil at the bottom of the left bar (or press Ctrl+E) to edit. A panel opens with **Tiles** and **Topics**: drag a topic onto the tab and it becomes a matching tile, or drag a tile type and pick its topic. Double-clicking also adds it, and right-clicking the canvas opens the full Add tile dialog.
 
 ## Tabs
 
@@ -52,7 +52,7 @@ To edit tiles:
 - **Resize:** drag its edges.
 - **Edit, duplicate, move to another tab, or remove:** right-click it.
 
-**Setup > Lock layout** stops tiles and tabs from being moved, added or removed during matches. Buttons, toggles and sliders still work.
+Outside edit mode (the pencil, or Ctrl+E) tiles and tabs can't be moved, added or removed, so nothing gets bumped during a match. Buttons, toggles and sliders still work. Tabs are the numbered buttons on the left bar; Ctrl+1 to Ctrl+9 switch between them, and right-clicking one in edit mode renames, moves or deletes it.
 
 Controls only write to the robot after the driver uses them. Until then the topic doesn't exist on the robot, so robot code can check `exists()` and fall back to its own default. Camera tiles stop streaming while their tab is hidden, to save bandwidth.
 
@@ -69,14 +69,14 @@ The Topics panel and the Add tile > Browse dialog both list two sources, with se
 
 ## Layouts: sharing, and keeping one with the robot code
 
-- **Setup > Save layout to robot project** writes your tabs to `<robot project>/src/main/deploy/dashboard.json`, so the layout is versioned and deployed with the robot code.
-- **Setup > Load layout from robot** downloads that file from the robot. You can replace tabs that have the same name and keep the rest, or replace all tabs. The robot code needs this in `robotInit()`:
+- **Menu > Save layout to robot project** writes your tabs to `<robot project>/src/main/deploy/dashboard.json`, so the layout is versioned and deployed with the robot code.
+- **Menu > Load layout from robot** downloads that file from the robot. You can replace tabs that have the same name and keep the rest, or replace all tabs. The robot code needs this in `robotInit()`:
 
   ```java
   WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
   ```
 
-- **Setup > Save config as / Load config** share the whole config, which also includes team, title and module settings.
+- **Menu > Save config as / Load config** share the whole config, which also includes team, title and module settings.
 
 Everything is stored in `%USERPROFILE%\.emberfx\config.json`.
 
@@ -109,7 +109,7 @@ Both include Java. Building needs WPILib (for the JDK and libraries), and the in
 | Script | What it does |
 |---|---|
 | `scripts\build-exe.bat` | Builds the installer and the zip |
-| `scripts\register-ds.bat [exe]` | Makes the exe the Driver Station's Default dashboard (the same thing the Setup menu item does). It refuses while the DS is open, because the DS rewrites its settings when it closes, and it backs up the DS `.ini` first. |
+| `scripts\register-ds.bat [exe]` | Makes the exe the Driver Station's Default dashboard (the same thing the menu item does). It refuses while the DS is open, because the DS rewrites its settings when it closes, and it backs up the DS `.ini` first. |
 | `scripts\install.ps1` | The one-line PowerShell install. The release workflow fills in the repo name. |
 | `scripts\reset-config.bat` | Moves `config.json` to `config.json.bak`. Logs and module data are kept. |
 
@@ -156,12 +156,12 @@ src/main/java/emberfx/
     Topics, FoundTopic           both merged
   ui/
     DashboardView                the window: tabs, module tabs, frame loop
-    HeaderBar                    title, REC label, robot address picker, connection pill
-    SetupMenu                    the Setup menu and its actions
+    HeaderBar                    toolbar: tab name, REC label, robot address picker, connection pill
+    SetupMenu                    the main menu (top of the left bar) and its actions
     TabPage                      one tab: tiles, drag/resize/snap, drop target, tile menus
     TileDialog                   Add/Edit tile dialog
     TopicList                    searchable, draggable topic list
-    TopicsPanel, TopicBrowser    the side panel and the Browse dialog, both built on TopicList
+    SidePanel, TopicBrowser      the edit-mode Tiles/Topics panel and the Browse dialog, both built on TopicList
     Forms, Style                 shared dialogs; colors and small builders
 src/main/resources/emberfx/ui/
   dashboard.css                  every fixed color and style

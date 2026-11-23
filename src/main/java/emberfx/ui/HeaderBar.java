@@ -16,8 +16,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 
 /**
- * The top bar: dashboard title, the REC label while a log file is being written,
- * the robot address picker, the connection pill, and whatever is passed in on the right (the Setup button).
+ * The bar above the page: the tab's name (with an Editing badge in edit mode), team module items,
+ * the REC label while a log file is being written, the robot address picker and the connection pill.
  */
 final class HeaderBar extends HBox {
     private static final String LOCALHOST = "127.0.0.1";
@@ -26,22 +26,31 @@ final class HeaderBar extends HBox {
     private static final char RECORD_DOT = (char) 0x25CF;
 
     private final Label recording = Style.styled(new Label(), "recording");
-    private final Label status = Style.styled(new Label("DISCONNECTED"), "status-pill");
+    private final Label status = Style.styled(new Label("Disconnected"), "status-pill");
 
-    HeaderBar(Node right) {
-        getStyleClass().add("header");
+    private final Label pageTitle = Style.styled(new Label(), "page-title");
+    private final Label editing = Style.styled(new Label("Editing"), "badge");
+
+    HeaderBar(Node moduleItems) {
+        getStyleClass().add("toolbar-bar");
         recording.setTooltip(new Tooltip("Logs save to " + SessionLog.DIR));
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         TextField customHost = new TextField();
         ComboBox<String> target = robotPicker(customHost);
-        getChildren().addAll(Style.styled(new Label(Config.title()), "app-title"), spacer, recording, customHost, target, status, right);
+        getChildren().addAll(pageTitle, editing, spacer, moduleItems, recording, customHost, target, status);
 
         NT.onConnectionChange(connected -> Platform.runLater(() -> {
-            status.setText(connected ? "CONNECTED" : "DISCONNECTED");
+            status.setText(connected ? "Connected" : "Disconnected");
             status.pseudoClassStateChanged(CONNECTED, connected);
         }));
+    }
+
+    /** Show which tab is up and whether the layout can be edited. */
+    void setPage(String name, boolean editable) {
+        pageTitle.setText(name);
+        editing.setVisible(editable);
     }
 
     /** Refresh the REC label. Called every frame. */

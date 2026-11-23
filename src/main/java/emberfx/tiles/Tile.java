@@ -1,8 +1,12 @@
 package emberfx.tiles;
 
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,13 +23,21 @@ public abstract class Tile extends BorderPane {
 
     protected final TileConfig config;
     private final List<AutoCloseable> handles = new ArrayList<>();
+    private final Label headerValue = new Label();
 
     protected Tile(TileConfig config) {
         this.config = config;
         Label title = new Label(config.title());
         title.getStyleClass().add("card-title");
-        setTop(title);
-        BorderPane.setMargin(title, new Insets(0, 0, 6, 0));
+        title.setMinWidth(0);
+        headerValue.getStyleClass().add("card-value");
+        headerValue.setMinWidth(Region.USE_PREF_SIZE);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox header = new HBox(8, title, spacer, headerValue);
+        header.setAlignment(Pos.CENTER_LEFT);
+        setTop(header);
+        BorderPane.setMargin(header, new Insets(0, 0, 8, 0));
         setPadding(new Insets(10, 12, 12, 12));
         getStyleClass().add("card");
     }
@@ -35,6 +47,9 @@ public abstract class Tile extends BorderPane {
 
     /** Called every frame while the tile's tab is showing. Read subscribers and refresh the controls here. */
     public abstract void update();
+
+    /** Small monospace text at the right of the title, e.g. a graph's latest value. */
+    protected void setHeaderValue(String text) { headerValue.setText(text); }
 
     /** Remember a subscriber or publisher so it's closed with the tile. Returns it for chaining. */
     protected <T extends AutoCloseable> T track(T handle) {

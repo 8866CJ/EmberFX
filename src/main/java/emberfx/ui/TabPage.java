@@ -9,6 +9,7 @@ import emberfx.tiles.TileConfig;
 import emberfx.tiles.TileType;
 import emberfx.tiles.TileTypes;
 import emberfx.topics.FoundTopic;
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
@@ -23,8 +24,13 @@ import javafx.scene.control.TextInputControl;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
+import javafx.scene.image.WritableImage;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +48,7 @@ public final class TabPage {
     private final Pane canvas = new Pane();
     private final StackPane root;
     private final List<Tile> tiles = new ArrayList<>();
+    private final Label hint = new Label();
 
     TabPage(ObjectNode json, DashboardView window) {
         this.json = json;
@@ -54,23 +61,26 @@ public final class TabPage {
         canvas.minHeightProperty().bind(Bindings.createDoubleBinding(() -> scroll.getViewportBounds().getHeight(), scroll.viewportBoundsProperty()));
         canvas.setOnContextMenuRequested(e -> {
             if (e.getTarget() != canvas || Config.locked()) return;
-            new ContextMenu(Forms.item("Add tile here...", () -> addNew(e.getX(), e.getY())))
+            new ContextMenu(Forms.item("Add tile here...", () -> addNew(null, e.getX(), e.getY())))
                 .show(canvas, e.getScreenX(), e.getScreenY());
         });
 
         // Topics dragged from the Topics panel become tiles where they're dropped.
+        // Tile types dragged from the Tiles panel open the Add tile dialog for that spot.
         canvas.setOnDragOver(e -> {
-            if (TopicList.dragged() != null && !Config.locked()) e.acceptTransferModes(TransferMode.COPY);
+            if ((TopicList.dragged() != null || SidePanel.dragged() != null) && !Config.locked()) e.acceptTransferModes(TransferMode.COPY);
             e.consume();
         });
         canvas.setOnDragDropped(e -> {
             FoundTopic t = TopicList.dragged();
+            TileType type = SidePanel.dragged();
             if (t != null) addTopic(t, e.getX(), e.getY());
-            e.setDropCompleted(t != null);
+            e.setDropCompleted(t != null || type != null);
             e.consume();
+            // After the drop finishes, so the dialog doesn't hold up the drag.
+            if (type != null) Platform.runLater(() -> addNew(type, e.getX(), e.getY()));
         });
 
-        Label hint = new Label("Right-click here, drag a topic in from the Topics panel, or use Setup > Add tile.");
         hint.getStyleClass().add("empty-hint");
         hint.setMouseTransparent(true);
         hint.visibleProperty().bind(Bindings.isEmpty(canvas.getChildren()));
@@ -103,11 +113,29 @@ public final class TabPage {
 
     void close() { tiles.forEach(Tile::close); }
 
+    /** In edit mode the canvas shows the snap grid as dots, and the empty-tab hint says how to add tiles. */
+    void setEditing(boolean editing) {
+        canvas.setBackground(editing ? dots() : null);
+        hint.setText(editing
+            ? "Drag a tile or a topic here from the panel on the left,\nor right-click to add a tile."
+            : "This tab is empty.\nClick the pencil on the left (or press Ctrl+E) to add tiles.");
+    }
+
+    /** Small dots on the snap grid, spaced at least 16 px apart. */
+    private static Background dots() {
+        int grid = Config.gridSize(), gap = grid * (int) Math.ceil(16.0 / grid);
+        WritableImage img = new WritableImage(gap, gap);
+        Color dot = Color.web("#334155");
+        for (int x = 0; x < 2; x++) for (int y = 0; y < 2; y++) img.getPixelWriter().setColor(x, y, dot);
+        return new Background(new BackgroundFill(new ImagePattern(img, 0, 0, gap, gap, false), null, null));
+    }
+
     // ---- adding, editing, removing ----
 
-    /** Ask for a new tile and put it at (x, y), or the first free spot when x is NaN. */
-    void addNew(double x, double y) {
+    /** Ask for a new tile (of the given type, or any when null) and put it at (x, y), or the first free spot when x is NaN. */
+    void addNew(TileType type, double x, double y) {
         ObjectNode t = tilesJson().addObject();
+        if (type != null) t.put("type", type.id());
         if (!TileDialog.edit(t, true)) {
             removeJson(t);
             return;

@@ -8,17 +8,21 @@ import emberfx.ModuleContext;
 import emberfx.NT;
 import emberfx.config.Config;
 import javafx.animation.AnimationTimer;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBase;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.Separator;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -26,6 +30,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -34,8 +40,9 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * The dashboard window: the header, the tab row, and the page that's showing.
- * User tabs are {@link TabPage}s; team modules can add fixed tabs and header items.
+ * The dashboard window: an icon rail on the left (menu, one numbered button per tab, edit mode,
+ * settings), the Tiles/Topics panel while editing, and the toolbar over the page that's showing.
+ * User tabs are {@link TabPage}s; team modules can add fixed tabs and toolbar items.
  * Also runs the frame loop that refreshes whatever is on screen.
  */
 public final class DashboardView {
@@ -43,22 +50,22 @@ public final class DashboardView {
     public static final String STYLESHEET =
         Objects.requireNonNull(DashboardView.class.getResource("dashboard.css"), "dashboard.css is missing").toExternalForm();
     private static final double DISCONNECTED_OPACITY = 0.6; // stale values are dimmed while disconnected
+    private static final double SIDE_PANEL_SHARE = 0.24;    // starting width of the side panel, as a share of the window
 
     /** A tab added by a team module. It can't be renamed, deleted or hold tiles. */
     private record ModuleTab(String name, Parent content, Runnable update) {}
 
-    private final BorderPane root = Style.styled(new BorderPane(), "dashboard");
+    private final BorderPane root = new BorderPane();
+    private final VBox rail = Style.styled(new VBox(), "nav-rail");
     private final StackPane pages = new StackPane();
-    private final HBox tabRow = new HBox(8);
+    private final SplitPane split = new SplitPane();
     private final HBox moduleHeaderItems = new HBox(10);
-    private final Label lockedLabel = Style.styled(new Label("Layout locked"), "muted");
-    private final ToggleButton topicsButton = new ToggleButton("Topics");
-    private final TopicsPanel topicsPanel = new TopicsPanel(topic -> {
-        TabPage page = selectedPage();
-        if (page != null && !Config.locked()) page.addTopic(topic, Double.NaN, Double.NaN);
-    });
-    private final HeaderBar header;
+    private final SidePanel sidePanel = new SidePanel(
+        type -> { TabPage p = selectedPage(); if (p != null) p.addNew(type, Double.NaN, Double.NaN); },
+        topic -> { TabPage p = selectedPage(); if (p != null) p.addTopic(topic, Double.NaN, Double.NaN); });
+    private final HeaderBar header = new HeaderBar(moduleHeaderItems);
     private final SetupMenu setupMenu;
+    private final PauseTransition topicRefresh = new PauseTransition(Duration.seconds(1));
 
     private final List<TabPage> tabs = new ArrayList<>();
     private final List<ModuleTab> moduleTabs = new ArrayList<>();
@@ -73,22 +80,20 @@ public final class DashboardView {
     public DashboardView(List<DashModule> modules, List<String> problems) {
         for (JsonNode n : Config.tabs()) if (n instanceof ObjectNode o) tabs.add(new TabPage(o, this));
         selected = tabs.get(0);
-
         setupMenu = new SetupMenu(this, modules);
-        Button setupButton = new Button("Setup");
-        setupButton.setOnAction(e -> setupMenu.show(setupButton));
-        header = new HeaderBar(setupButton);
 
         startModules(modules, problems);
-        root.setTop(new VBox(2, header, tabBar()));
-        root.setCenter(pages);
+        root.setLeft(rail);
+        root.setCenter(new BorderPane(split, header, null, null, null));
+        SplitPane.setResizableWithParent(sidePanel, false); // window resizes go to the page, not the panel
+        topicRefresh.setOnFinished(e -> sidePanel.refresh());
         refreshTabs();
-        installTabShortcuts();
+        installShortcuts();
 
         pages.setOpacity(DISCONNECTED_OPACITY);
         NT.onConnectionChange(connected -> Platform.runLater(() -> {
             pages.setOpacity(connected ? 1.0 : DISCONNECTED_OPACITY);
-            if (topicsButton.isSelected()) topicsPanel.refresh();
+            if (!Config.locked()) topicRefresh.playFromStart(); // after the robot has announced its topics
         }));
         startFrameLoop();
     }
@@ -140,35 +145,34 @@ public final class DashboardView {
         refreshTabs();
     }
 
-    /** Rebuild the tab buttons and show the selected page. Called after any tab or lock change. */
+    /** Rebuild the rail and show the selected page. Called after any tab or edit mode change. */
     void refreshTabs() {
-        boolean locked = Config.locked();
-        ToggleGroup group = new ToggleGroup();
-        tabRow.getChildren().clear();
+        boolean editing = !Config.locked();
         pages.getChildren().clear();
         for (TabPage page : tabs) {
-            ToggleButton button = tabButton(page.name(), page, group);
-            button.setOnContextMenuRequested(e -> {
-                if (!Config.locked()) tabMenu(page).show(button, e.getScreenX(), e.getScreenY());
-            });
-            tabRow.getChildren().add(button);
             pages.getChildren().add(page.root());
             page.root().setVisible(page == selected);
-        }
-        if (!locked) {
-            Button add = new Button("+");
-            add.setTooltip(new Tooltip("New tab"));
-            add.setOnAction(e -> addTab());
-            tabRow.getChildren().add(add);
+            page.setEditing(editing);
         }
         for (ModuleTab tab : moduleTabs) {
-            tabRow.getChildren().add(tabButton(tab.name(), tab, group));
             pages.getChildren().add(tab.content());
             tab.content().setVisible(tab == selected);
         }
-        lockedLabel.setVisible(locked);
-        topicsButton.setVisible(!locked);
-        if (locked) showTopicsPanel(false);
+        buildRail(editing);
+
+        TabPage page = selectedPage();
+        header.setPage(page != null ? page.name() : ((ModuleTab) selected).name(), editing && page != null);
+        boolean showPanel = editing && page != null;
+        if (showPanel != split.getItems().contains(sidePanel)) {
+            split.getItems().setAll(showPanel ? List.of(sidePanel, pages) : List.of(pages));
+            if (showPanel) {
+                split.setDividerPositions(SIDE_PANEL_SHARE);
+                sidePanel.refresh();
+                topicRefresh.playFromStart(); // again shortly, in case we just connected
+            }
+        } else if (split.getItems().isEmpty()) {
+            split.getItems().add(pages);
+        }
     }
 
     // ---- setup ----
@@ -184,20 +188,81 @@ public final class DashboardView {
         }
     }
 
-    private HBox tabBar() {
+    /** Menu, a numbered button per tab, +, module tabs, then edit mode and settings at the bottom. */
+    private void buildRail(boolean editing) {
+        rail.getChildren().clear();
+        Button menu = railButton(new Button(), Style.icon(Style.ICON_MENU), "Menu");
+        menu.setOnAction(e -> setupMenu.show(menu));
+        rail.getChildren().addAll(menu, new Separator());
+
+        for (int i = 0; i < tabs.size(); i++) {
+            TabPage page = tabs.get(i);
+            ToggleButton b = tabButton(String.valueOf(i + 1), page.name(), i, page);
+            b.setOnContextMenuRequested(e -> {
+                if (!Config.locked()) tabMenu(page).show(b, e.getScreenX(), e.getScreenY());
+            });
+            rail.getChildren().add(b);
+        }
+        if (editing) {
+            Button add = railButton(new Button(), Style.icon(Style.ICON_PLUS), "New tab");
+            add.setOnAction(e -> addTab());
+            rail.getChildren().add(add);
+        }
+        for (int i = 0; i < moduleTabs.size(); i++) {
+            ModuleTab tab = moduleTabs.get(i);
+            rail.getChildren().add(tabButton(tab.name().substring(0, 1).toUpperCase(), tab.name(), tabs.size() + i, tab));
+        }
+
         Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        topicsButton.setTooltip(new Tooltip("Show every topic; drag one onto the tab to add it"));
-        topicsButton.setOnAction(e -> showTopicsPanel(topicsButton.isSelected()));
-        HBox bar = new HBox(tabRow, lockedLabel, spacer, moduleHeaderItems, topicsButton);
-        bar.getStyleClass().add("tab-bar");
-        return bar;
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        ToggleButton edit = railButton(new ToggleButton(), Style.icon(Style.ICON_EDIT),
+            (editing ? "Stop editing" : "Edit layout") + "  (Ctrl+E)");
+        edit.setSelected(editing);
+        edit.setOnAction(e -> toggleEditing());
+        Button settings = railButton(new Button(), Style.icon(Style.ICON_SETTINGS), "Settings");
+        settings.setOnAction(e -> setupMenu.showSettings());
+        rail.getChildren().addAll(spacer, edit, settings);
     }
 
-    /** Ctrl+1 to Ctrl+9 switch to that tab. */
-    private void installTabShortcuts() {
+    /** A rail button for a tab: its number (or initial) in a rounded square. Ctrl+number switches to it. */
+    private ToggleButton tabButton(String label, String name, int index, Object tab) {
+        Rectangle outline = Style.styled(new Rectangle(20, 20), "tab-outline");
+        ToggleButton b = railButton(new ToggleButton(label), outline, index < 9 ? name + "  (Ctrl+" + (index + 1) + ")" : name);
+        b.setContentDisplay(ContentDisplay.CENTER);
+        b.setSelected(tab == selected);
+        b.setOnAction(e -> {
+            selected = tab;
+            refreshTabs();
+        });
+        return b;
+    }
+
+    private static <T extends ButtonBase> T railButton(T button, Node graphic, String tooltip) {
+        button.getStyleClass().setAll("nav-button");
+        button.setGraphic(graphic);
+        button.setMnemonicParsing(false);
+        Tooltip tip = new Tooltip(tooltip);
+        tip.setShowDelay(Duration.millis(300));
+        button.setTooltip(tip);
+        return button;
+    }
+
+    private void toggleEditing() {
+        Config.root().put("locked", !Config.locked());
+        Config.save();
+        refreshTabs();
+    }
+
+    /** Ctrl+1 to Ctrl+9 switch tabs, Ctrl+E turns edit mode on and off. */
+    private void installShortcuts() {
         root.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            if (!e.isShortcutDown() || e.getText().isEmpty() || !Character.isDigit(e.getText().charAt(0))) return;
+            if (!e.isShortcutDown()) return;
+            if (e.getCode() == KeyCode.E) {
+                toggleEditing();
+                e.consume();
+                return;
+            }
+            if (e.getText().isEmpty() || !Character.isDigit(e.getText().charAt(0))) return;
             int index = e.getText().charAt(0) - '1';
             List<Object> all = new ArrayList<>(tabs);
             all.addAll(moduleTabs);
@@ -209,7 +274,7 @@ public final class DashboardView {
         });
     }
 
-    /** Refresh the header and the page that's showing, once per frame. */
+    /** Refresh the toolbar and the page that's showing, once per frame. */
     private void startFrameLoop() {
         new AnimationTimer() {
             @Override
@@ -235,24 +300,6 @@ public final class DashboardView {
 
     // ---- tabs ----
 
-    private void showTopicsPanel(boolean show) {
-        topicsButton.setSelected(show);
-        root.setRight(show ? topicsPanel : null);
-        if (show) topicsPanel.refresh();
-    }
-
-    private ToggleButton tabButton(String text, Object tab, ToggleGroup group) {
-        ToggleButton button = Style.styled(new ToggleButton(text), "tab-button");
-        button.setToggleGroup(group);
-        button.setSelected(tab == selected);
-        button.setMnemonicParsing(false);
-        button.setOnAction(e -> {
-            selected = tab;
-            refreshTabs();
-        });
-        return button;
-    }
-
     private ContextMenu tabMenu(TabPage page) {
         int i = tabs.indexOf(page);
         MenuItem rename = Forms.item("Rename...", () -> Forms.ask("Rename tab", "Name:", page.name()).ifPresent(name -> {
@@ -260,13 +307,13 @@ public final class DashboardView {
             Config.save();
             refreshTabs();
         }));
-        MenuItem left = Forms.item("Move left", () -> moveTab(i, i - 1));
-        MenuItem right = Forms.item("Move right", () -> moveTab(i, i + 1));
+        MenuItem up = Forms.item("Move up", () -> moveTab(i, i - 1));
+        MenuItem down = Forms.item("Move down", () -> moveTab(i, i + 1));
         MenuItem delete = Forms.item("Delete tab...", () -> deleteTab(page));
-        left.setDisable(i == 0);
-        right.setDisable(i == tabs.size() - 1);
+        up.setDisable(i == 0);
+        down.setDisable(i == tabs.size() - 1);
         delete.setDisable(tabs.size() == 1);
-        return new ContextMenu(rename, left, right, delete);
+        return new ContextMenu(rename, up, down, delete);
     }
 
     private void addTab() {

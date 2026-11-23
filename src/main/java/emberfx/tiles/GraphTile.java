@@ -50,7 +50,9 @@ public final class GraphTile extends Tile {
 
         double t = (now - start) / 1e9, window = Math.max(1, config.optionDouble("seconds"));
         var points = series.getData();
-        points.add(new XYChart.Data<>(t, sub.get()));
+        double v = sub.get();
+        points.add(new XYChart.Data<>(t, v));
+        setHeaderValue(TextTile.number(v, "%.2f"));
         while (!points.isEmpty() && points.get(0).getXValue().doubleValue() < t - window) points.remove(0);
         time.setLowerBound(t - window);
         time.setUpperBound(t);

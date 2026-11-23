@@ -16,14 +16,14 @@ Both include Java and need no admin rights. Running either again updates the das
 
 No install: `EmberFX-Portable.zip` from the same release runs from any folder.
 
-**Coming from FRC Dashboard 1.0.x?** EmberFX is the same app, renamed. Installing it upgrades in place and moves your settings, layouts and logs over. Afterwards, run **Setup > Use as Driver Station dashboard** again, because the program file has a new name.
+**Coming from FRC Dashboard 1.0.x?** EmberFX is the same app, renamed. Installing it upgrades in place and moves your settings, layouts and logs over. Afterwards, run **Menu > Use as Driver Station dashboard** again, because the program file has a new name.
 
 ## Get started
 
-1. **Setup > Settings:** enter your team number.
-2. **Setup > Link robot project:** pick your robot code folder, so the dashboard can find topic names before the robot is on.
-3. **Topics:** drag topics onto a tab. Use **+** to add more tabs.
-4. **Setup > Use as Driver Station dashboard:** the DS will open the dashboard for you. Close the DS first.
+1. **Settings** (bottom of the left bar): enter your team number.
+2. **Menu > Link robot project:** pick your robot code folder, so the dashboard can find topic names before the robot is on.
+3. **Edit** (the pencil, or Ctrl+E): drag topics or tile types from the side panel onto the tab. Use **+** on the left bar to add tabs. Turn edit mode off before a match so nothing gets bumped.
+4. **Menu > Use as Driver Station dashboard:** the DS will open the dashboard for you. Close the DS first.
 
 ## More
 

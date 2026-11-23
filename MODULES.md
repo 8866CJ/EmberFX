@@ -9,14 +9,14 @@ A module can add:
 | A new tile type | `ctx.addTileType(...)` | [examples/custom-tile](examples/custom-tile): "Limit light", a number that turns red over a limit |
 | A whole tab | `ctx.addTab(...)` | [examples/custom-tab](examples/custom-tab): shooter tuning with a distance -> RPM table |
 | A header item | `ctx.addHeader(...)` | the TUNING MODE pill in the custom-tab example |
-| A Setup menu entry | `ctx.addMenuItem(...)` | |
+| A menu entry | `ctx.addMenuItem(...)` | |
 
 ## A new tile type
 
 ```java
 public final class LimitLightModule implements DashModule {
     public String id() { return "limit-light"; }            // config key, keep it stable
-    public String name() { return "Limit light tile"; }     // shown in Setup > Settings
+    public String name() { return "Limit light tile"; }     // shown in Settings
 
     public void start(ModuleContext ctx) {
         ctx.addTileType(new TileType(
@@ -75,7 +75,7 @@ public List<Setting> settings() {
 }
 ```
 
-Read them with `ctx.get("rpmTopic")` and `ctx.getDouble("maxRpm")`. Users edit them in **Setup > Module settings**.
+Read them with `ctx.get("rpmTopic")` and `ctx.getDouble("maxRpm")`. Users edit them in **Menu > Module settings**.
 
 ## What `ModuleContext` gives you
 
@@ -83,8 +83,8 @@ Read them with `ctx.get("rpmTopic")` and `ctx.getDouble("maxRpm")`. Users edit t
 |---|---|
 | `addTileType(type)` | A new kind of tile in Add tile |
 | `addTab(title, node, update)` | A full-page tab after the user's tabs |
-| `addHeader(node, update)` | Something small on the right of the tab row |
-| `addMenuItem(item)` | An entry in the Setup menu |
+| `addHeader(node, update)` | Something small on the right of the toolbar |
+| `addMenuItem(item)` | An entry in the menu (top of the left bar) |
 | `get`, `getDouble`, `getBool` | Current value of one of your settings |
 | `config()` + `save()` | Your own section of `config.json` |
 | `dataDir()` | `%USERPROFILE%\.emberfx\<id>\` for your files |
@@ -121,7 +121,7 @@ The dashboard can close or disconnect at any moment, and everything it published
    copy build\custom-tile\libs\custom-tile.jar $env:USERPROFILE\.emberfx\modules\
    ```
 
-4. **Reopen the dashboard.** Modules are on by default. Turn them off in **Setup > Settings**.
+4. **Reopen the dashboard.** Modules are on by default. Turn them off in **Settings** (bottom of the left bar).
 
 If a module throws while starting or updating, the dashboard shows a warning and keeps running without it. A tile whose type isn't installed shows a placeholder and keeps its settings.
 
