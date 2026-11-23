@@ -1,0 +1,22 @@
+# Runs the tests and builds the app on every push and pull request.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Test and build the example modules
+        run: |
+          ./gradlew.bat test jar --no-daemon
+          ./gradlew.bat -p examples/custom-tile jar --no-daemon
+          ./gradlew.bat -p examples/custom-tab jar --no-daemon

@@ -1,0 +1,45 @@
+# Push a tag like v1.2.0 to publish a release:
+#   git tag v1.2.0
+#   git push origin v1.2.0
+#
+# Assets keep the same names in every release, so these links always point at the newest one:
+#   https://github.com/8866CJ/FRCDashboard/releases/latest/download/FRCDashboard-Setup.exe
+#   https://github.com/8866CJ/FRCDashboard/releases/latest/download/FRCDashboard-Portable.zip
+#   https://github.com/8866CJ/FRCDashboard/releases/latest/download/install.ps1
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer and portable zip
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          ./gradlew.bat test packageInstaller "-PappVersion=$version" --no-daemon
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item "build/installer/FRCDashboard-Setup-$version.exe" release/FRCDashboard-Setup.exe
+          Copy-Item build/dist/FRCDashboard.zip release/FRCDashboard-Portable.zip
+          # install.ps1 downloads from this repo's latest release.
+          (Get-Content scripts/install.ps1 -Raw).Replace('__REPO__', '${{ github.repository }}') | Set-Content release/install.ps1
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
