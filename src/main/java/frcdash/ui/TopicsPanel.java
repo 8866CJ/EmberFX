@@ -25,7 +25,7 @@ final class TopicsPanel extends VBox {
     TopicsPanel(Consumer<FoundTopic> add) {
         super(8);
         Label title = new Label("Topics");
-        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-weight: 800; -fx-font-size: 15;");
+        title.getStyleClass().add("panel-title");
         Button refresh = new Button("Refresh");
         refresh.setOnAction(e -> refresh());
         Region spacer = new Region();
@@ -34,17 +34,17 @@ final class TopicsPanel extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
 
         summary.setWrapText(true);
-        summary.setStyle("-fx-text-fill: " + Style.GREY + ";");
+        summary.getStyleClass().add("muted");
         Label hint = new Label("Drag a topic onto the tab, or double-click it.");
         hint.setWrapText(true);
-        hint.setStyle("-fx-text-fill: " + Style.GREY + ";");
+        hint.getStyleClass().add("muted");
 
         list.onChoose(add);
         VBox.setVgrow(list, Priority.ALWAYS);
         getChildren().addAll(header, summary, list, hint);
         setPadding(new Insets(10));
         setPrefWidth(300);
-        setStyle(Style.CARD);
+        getStyleClass().add("card");
         BorderPane.setMargin(this, new Insets(0, 0, 0, 10)); // space between the tab and the panel
     }
 

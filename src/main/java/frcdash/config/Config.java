@@ -1,4 +1,4 @@
-package frcdash;
+package frcdash.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,12 +33,16 @@ public final class Config {
     public static final Path DIR = Paths.get(System.getProperty("user.home"), ".frcdash");
     public static final Path FILE = DIR.resolve("config.json");
     private static final ObjectMapper JSON = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private static final System.Logger LOG = System.getLogger(Config.class.getName());
 
-    static String loadError;      // shown once at startup
-    private static boolean frozen; // true = never write (file unreadable, or replaced until restart)
+    private static String loadError; // set when config.json couldn't be read; shown once at startup
+    private static boolean frozen;   // true = never write (file unreadable, or replaced until restart)
     private static ObjectNode root = load();
 
     private Config() {}
+
+    /** Why config.json couldn't be read at startup, or null if it loaded fine. */
+    public static String loadError() { return loadError; }
 
     private static ObjectNode load() {
         if (!Files.exists(FILE)) return JSON.createObjectNode();
@@ -108,7 +112,7 @@ public final class Config {
             JSON.writeValue(tmp.toFile(), root);
             Files.move(tmp, FILE, REPLACE_EXISTING, ATOMIC_MOVE); // never leaves a half-written config
         } catch (IOException e) {
-            System.err.println("Couldn't save " + FILE + ": " + e.getMessage());
+            LOG.log(System.Logger.Level.ERROR, "Couldn't save " + FILE, e);
         }
     }
 

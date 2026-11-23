@@ -2,7 +2,6 @@ package frcdash.tiles;
 
 import edu.wpi.first.networktables.StringArraySubscriber;
 import frcdash.NT;
-import frcdash.ui.Style;
 import javafx.application.Platform;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -45,7 +44,7 @@ public final class CameraTile extends Tile {
         view.setPreserveRatio(true);
         view.fitWidthProperty().bind(widthProperty().subtract(28));
         view.fitHeightProperty().bind(heightProperty().subtract(50));
-        status.setStyle("-fx-text-fill: " + Style.GREY + ";");
+        status.getStyleClass().add("muted");
         setCenter(new StackPane(view, status));
 
         reader = new Thread(this::readLoop, "camera " + config.title());
@@ -119,7 +118,7 @@ public final class CameraTile extends Tile {
      * The next JPEG in an MJPEG stream: bytes from a start marker (FF D8) to an end marker (FF D9).
      * Scanning for the markers works for every MJPEG server without parsing its multipart headers.
      */
-    public static byte[] nextJpeg(InputStream in) throws IOException {
+    static byte[] nextJpeg(InputStream in) throws IOException {
         int prev = -1, b;
         while ((b = in.read()) != -1) {
             if (prev == 0xFF && b == 0xD8) break;
@@ -157,7 +156,7 @@ public final class CameraTile extends Tile {
         if (in == null) return;
         try {
             in.close();
-        } catch (IOException ignored) {
+        } catch (IOException ignored) { // closing a dropped stream; nothing to recover
         }
     }
 }

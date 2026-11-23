@@ -1,0 +1,80 @@
+package frcdash.ui;
+
+import frcdash.NT;
+import frcdash.app.SessionLog;
+import frcdash.config.Config;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.css.PseudoClass;
+import javafx.scene.Node;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+
+/**
+ * The top bar: dashboard title, the REC label while a log file is being written,
+ * the robot address picker, the connection pill, and whatever is passed in on the right (the Setup button).
+ */
+final class HeaderBar extends HBox {
+    private static final String LOCALHOST = "127.0.0.1";
+    private static final String CUSTOM = "Custom...";
+    private static final PseudoClass CONNECTED = PseudoClass.getPseudoClass("connected");
+    private static final char RECORD_DOT = (char) 0x25CF;
+
+    private final Label recording = Style.styled(new Label(), "recording");
+    private final Label status = Style.styled(new Label("DISCONNECTED"), "status-pill");
+
+    HeaderBar(Node right) {
+        getStyleClass().add("header");
+        recording.setTooltip(new Tooltip("Logs save to " + SessionLog.DIR));
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        TextField customHost = new TextField();
+        ComboBox<String> target = robotPicker(customHost);
+        getChildren().addAll(Style.styled(new Label(Config.title()), "app-title"), spacer, recording, customHost, target, status, right);
+
+        NT.onConnectionChange(connected -> Platform.runLater(() -> {
+            status.setText(connected ? "CONNECTED" : "DISCONNECTED");
+            status.pseudoClassStateChanged(CONNECTED, connected);
+        }));
+    }
+
+    /** Refresh the REC label. Called every frame. */
+    void update() {
+        String file = SessionLog.currentFile();
+        recording.setText(file == null ? "" : RECORD_DOT + " REC " + file);
+    }
+
+    /**
+     * The robot address picker: the team's roboRIO, the local simulator, or a typed address.
+     * Choosing an entry connects right away; a custom address connects when Enter is pressed.
+     */
+    private static ComboBox<String> robotPicker(TextField customHost) {
+        String robot = DashboardView.robotHost(Config.team());
+        ComboBox<String> target = new ComboBox<>(FXCollections.observableArrayList(
+            robot.isEmpty() ? "Robot (set team in Setup)" : "Physical Robot (" + robot + ")", "Localhost (" + LOCALHOST + ")", CUSTOM));
+        target.setPrefWidth(210);
+        customHost.setPromptText("Enter host, ex: " + (robot.isEmpty() ? "10.0.0.2" : robot));
+        customHost.setPrefWidth(200);
+        customHost.managedProperty().bind(customHost.visibleProperty());
+        customHost.setVisible(false);
+
+        Runnable connect = () -> {
+            int i = target.getSelectionModel().getSelectedIndex();
+            String host = i == 0 ? robot : i == 1 ? LOCALHOST : customHost.getText().trim();
+            if (!host.isEmpty()) NT.startClient(host);
+        };
+        target.valueProperty().addListener((obs, oldValue, newValue) -> {
+            customHost.setVisible(CUSTOM.equals(newValue));
+            if (!customHost.isVisible()) connect.run();
+        });
+        customHost.setOnAction(e -> connect.run());
+        target.getSelectionModel().select(0);
+        return target;
+    }
+}

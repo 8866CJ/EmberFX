@@ -8,6 +8,7 @@ import frcdash.DashModule;
 import frcdash.ModuleContext;
 import frcdash.NT;
 import frcdash.Setting;
+import frcdash.ui.Style;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -64,6 +65,8 @@ public final class ShooterTuningModule implements DashModule {
         ctx.addTab("Shooter Tuning", tab.root, tab::update);
         ctx.addHeader(tab.pill, () -> tab.pill.setVisible(tab.robotTuningSub.get()));
     }
+
+    private static final String DIM = "#64748b"; // distance text while no target is seen
 
     private record Point(double distance, double rpm) {}
 
@@ -137,7 +140,7 @@ public final class ShooterTuningModule implements DashModule {
             Button plus = new Button("+100");
             minus.setOnAction(e -> rpmSlider.setValue(rpmSlider.getValue() - 100));
             plus.setOnAction(e -> rpmSlider.setValue(rpmSlider.getValue() + 100));
-            HBox rpmRow = new HBox(8, label("RPM"), rpmField, minus, plus);
+            HBox rpmRow = new HBox(8, Style.title("RPM"), rpmField, minus, plus);
             HBox.setHgrow(rpmSlider, Priority.ALWAYS);
 
             VBox left = card(new VBox(12, enableButton, robotLabel, rpmRow, rpmSlider,
@@ -169,10 +172,10 @@ public final class ShooterTuningModule implements DashModule {
             });
             copy.setOnAction(e -> copyTable());
 
-            VBox right = card(new VBox(10, label("Recorded points"), list, new HBox(8, record, delete, clear, copy), statusLabel));
+            VBox right = card(new VBox(10, Style.title("Recorded points"), list, new HBox(8, record, delete, clear, copy), statusLabel));
             HBox.setHgrow(right, Priority.ALWAYS);
             statusLabel.setWrapText(true);
-            statusLabel.setStyle("-fx-text-fill: #cbd5e1;");
+            statusLabel.getStyleClass().add("muted");
 
             root = new HBox(16, left, right);
             root.setPadding(new Insets(0, 10, 10, 10));
@@ -181,17 +184,17 @@ public final class ShooterTuningModule implements DashModule {
         void update() {
             boolean robotTuning = robotTuningSub.get();
             robotLabel.setText(robotTuning ? "Robot is using your RPM" : "Robot is using its own table");
-            robotLabel.setStyle(style(robotTuning ? "#facc15" : "#94a3b8", 14));
+            robotLabel.setStyle(Style.text(robotTuning ? Style.YELLOW : Style.GREY, 14));
             boolean seen = hasTargetSub.get();
             distanceLabel.setText(String.format("Distance: %.2f m", distanceSub.get()));
-            distanceLabel.setStyle(style(seen ? "#f8fafc" : "#64748b", 24));
+            distanceLabel.setStyle(Style.text(seen ? Style.WHITE : DIM, 24));
             actualLabel.setText(String.format("Actual: %.0f RPM", actualRpmSub.get()));
-            actualLabel.setStyle(style("#f8fafc", 18));
+            actualLabel.setStyle(Style.text(Style.WHITE, 18));
             visionLabel.setText(seen ? "Target seen" : "No target (can't record)");
-            visionLabel.setStyle(style(seen ? "#22c55e" : "#ef4444", 14));
+            visionLabel.setStyle(Style.text(seen ? Style.GREEN : Style.RED, 14));
             boolean ready = readySub.get();
             readyLabel.setText(ready ? "READY" : "NOT READY");
-            readyLabel.setStyle(style(ready ? "#22c55e" : "#ef4444", 18));
+            readyLabel.setStyle(Style.text(ready ? Style.GREEN : Style.RED, 18));
         }
 
         void recordPoint() {
@@ -241,24 +244,10 @@ public final class ShooterTuningModule implements DashModule {
             }
         }
 
-        static Label label(String text) {
-            Label l = new Label(text);
-            l.setStyle("-fx-text-fill: #94a3b8; -fx-font-weight: 700;");
-            return l;
-        }
-
-        static String style(String color, int size) {
-            return String.format("-fx-text-fill: %s; -fx-font-weight: 800; -fx-font-size: %d;", color, size);
-        }
-
+        /** A rounded panel using the dashboard's "card" style class (from dashboard.css). */
         static VBox card(VBox content) {
             content.setPadding(new Insets(14));
-            content.setStyle("""
-                -fx-background-color: #0f172a;
-                -fx-background-radius: 16;
-                -fx-border-color: #1f2a44;
-                -fx-border-radius: 16;
-            """);
+            content.getStyleClass().add("card");
             return content;
         }
     }

@@ -4,7 +4,6 @@ import edu.wpi.first.networktables.StringArraySubscriber;
 import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.networktables.StringSubscriber;
 import frcdash.NT;
-import frcdash.ui.Style;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -35,7 +34,7 @@ public final class ChooserTile extends Tile {
             if (selected == null) selected = track(NT.instance().getStringTopic(config.topic() + "/selected").publish());
             selected.set(v);
         });
-        active.setStyle("-fx-text-fill: " + Style.GREY + ";");
+        active.getStyleClass().add("muted");
         setCenter(new VBox(6, box, active));
     }
 

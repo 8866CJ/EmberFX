@@ -1,6 +1,6 @@
 package frcdash.topics;
 
-import frcdash.Config;
+import frcdash.config.Config;
 
 import java.io.IOException;
 import java.nio.file.Path;

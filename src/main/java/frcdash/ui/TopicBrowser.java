@@ -1,7 +1,7 @@
 package frcdash.ui;
 
-import frcdash.Config;
 import frcdash.NT;
+import frcdash.config.Config;
 import frcdash.topics.FoundTopic;
 import frcdash.topics.Topics;
 import javafx.scene.control.ButtonType;

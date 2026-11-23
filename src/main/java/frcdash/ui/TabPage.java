@@ -3,7 +3,7 @@ package frcdash.ui;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import frcdash.Config;
+import frcdash.config.Config;
 import frcdash.tiles.Tile;
 import frcdash.tiles.TileConfig;
 import frcdash.tiles.TileType;
@@ -48,7 +48,7 @@ public final class TabPage {
         this.window = window;
 
         ScrollPane scroll = new ScrollPane(canvas);
-        scroll.setStyle("-fx-background: #0b1220; -fx-background-color: transparent;");
+        scroll.getStyleClass().add("tab-scroll");
         // Let the canvas fill the window (so right-click works anywhere) but grow past it to scroll.
         canvas.minWidthProperty().bind(Bindings.createDoubleBinding(() -> scroll.getViewportBounds().getWidth(), scroll.viewportBoundsProperty()));
         canvas.minHeightProperty().bind(Bindings.createDoubleBinding(() -> scroll.getViewportBounds().getHeight(), scroll.viewportBoundsProperty()));
@@ -71,7 +71,7 @@ public final class TabPage {
         });
 
         Label hint = new Label("Right-click here, drag a topic in from the Topics panel, or use Setup > Add tile.");
-        hint.setStyle("-fx-text-fill: " + Style.GREY + "; -fx-font-size: 16;");
+        hint.getStyleClass().add("empty-hint");
         hint.setMouseTransparent(true);
         hint.visibleProperty().bind(Bindings.isEmpty(canvas.getChildren()));
         root = new StackPane(scroll, hint);

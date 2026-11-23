@@ -5,6 +5,7 @@ import edu.wpi.first.networktables.BooleanSubscriber;
 import edu.wpi.first.networktables.StringSubscriber;
 import frcdash.NT;
 import javafx.animation.PauseTransition;
+import javafx.css.PseudoClass;
 import javafx.scene.control.Button;
 import javafx.util.Duration;
 
@@ -18,6 +19,7 @@ import javafx.util.Duration;
 public final class ButtonTile extends Tile {
     public static final String PULSE = "Pulse (200 ms)";
     public static final String HOLD = "Hold";
+    private static final PseudoClass RUNNING = PseudoClass.getPseudoClass("running");
 
     private final Button button = new Button();
     private final StringSubscriber sendableType;
@@ -30,6 +32,7 @@ public final class ButtonTile extends Tile {
         running = track(NT.subBool(config.topic() + "/running", false));
         button.setText(config.option("text"));
         button.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        button.getStyleClass().add("tile-control");
         button.setMnemonicParsing(false);
         button.setOnMousePressed(e -> {
             send(true);
@@ -54,8 +57,6 @@ public final class ButtonTile extends Tile {
 
     @Override
     public void update() {
-        boolean lit = isCommand() && running.get();
-        button.setStyle("-fx-font-size: 18; -fx-font-weight: 800; -fx-background-radius: 10;"
-            + (lit ? "-fx-background-color: #1d4ed8; -fx-text-fill: white;" : ""));
+        button.pseudoClassStateChanged(RUNNING, isCommand() && running.get());
     }
 }

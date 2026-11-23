@@ -2,6 +2,7 @@ package frcdash;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import frcdash.config.Config;
 import frcdash.tiles.TileType;
 import frcdash.tiles.TileTypes;
 import frcdash.ui.DashboardView;
@@ -15,6 +16,8 @@ import java.nio.file.Path;
 
 /** What a module gets in start(): its settings, storage, and the places it can add things. */
 public final class ModuleContext {
+    private static final System.Logger LOG = System.getLogger(ModuleContext.class.getName());
+
     private final DashModule module;
     private final DashboardView window;
 
@@ -53,14 +56,15 @@ public final class ModuleContext {
 
     public void save() { Config.save(); }
 
-    /** ~/.frcdash/<module id>/ for the module's own files. */
+    /** ~/.frcdash/<module id>/ for the module's own files. Created if missing. */
     public Path dataDir() {
-        Path d = Config.DIR.resolve(module.id());
+        Path dir = Config.DIR.resolve(module.id());
         try {
-            Files.createDirectories(d);
-        } catch (IOException ignored) {
+            Files.createDirectories(dir);
+        } catch (IOException e) { // the module will see the problem when it writes there
+            LOG.log(System.Logger.Level.WARNING, "Couldn't create " + dir, e);
         }
-        return d;
+        return dir;
     }
 
     /** A module setting's saved value, or its default. */

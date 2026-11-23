@@ -3,7 +3,6 @@ package frcdash.tiles;
 import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.BooleanSubscriber;
 import frcdash.NT;
-import frcdash.ui.Style;
 import javafx.scene.control.ToggleButton;
 
 /** Turns a boolean on the robot on and off. Shows the robot's current value. */
@@ -16,6 +15,7 @@ public final class ToggleTile extends Tile {
         super(config);
         sub = track(NT.subBool(config.topic(), false));
         toggle.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        toggle.getStyleClass().addAll("tile-control", "toggle-tile");
         toggle.setMnemonicParsing(false);
         toggle.setOnAction(e -> {
             if (pub == null) pub = track(NT.pubBool(config.topic()));
@@ -29,7 +29,5 @@ public final class ToggleTile extends Tile {
         boolean on = sub.get();
         toggle.setSelected(on);
         toggle.setText(config.option(on ? "onText" : "offText"));
-        toggle.setStyle("-fx-font-size: 18; -fx-font-weight: 800; -fx-background-radius: 10; -fx-text-fill: white;"
-            + "-fx-background-color: " + (on ? Style.GREEN : "#334155") + ";");
     }
 }

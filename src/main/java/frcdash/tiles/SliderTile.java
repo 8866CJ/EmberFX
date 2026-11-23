@@ -11,7 +11,7 @@ import javafx.scene.layout.VBox;
 /** Drag to send a number to the robot. When not dragging, it follows the robot's value. */
 public final class SliderTile extends Tile {
     private final Slider slider;
-    private final Label value = new Label("--");
+    private final Label value = Style.value("--", 18);
     private final DoubleSubscriber sub;
     private DoublePublisher pub; // created on first drag
     private boolean following;   // true while the slider is being moved to match the robot, so it doesn't send
@@ -33,7 +33,6 @@ public final class SliderTile extends Tile {
             if (pub == null) pub = track(NT.pubDouble(config.topic()));
             pub.set(v.doubleValue());
         });
-        value.setStyle(Style.text(Style.WHITE, 18));
         setCenter(new VBox(6, value, slider));
     }
 

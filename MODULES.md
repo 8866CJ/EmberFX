@@ -89,7 +89,7 @@ Read them with `ctx.get("rpmTopic")` and `ctx.getDouble("maxRpm")`. Users edit t
 | `config()` + `save()` | Your own section of `config.json` |
 | `dataDir()` | `%USERPROFILE%\.frcdash\<id>\` for your files |
 
-`NT.subDouble`, `subBool`, `pubDouble`, `pubBool` and `pubString` make NetworkTables handles. `NT.instance()` gives you everything else. `frcdash.ui.Style` has the card, colors and text styles so your UI matches.
+`NT.subDouble`, `subBool`, `pubDouble`, `pubBool` and `pubString` make NetworkTables handles. `NT.instance()` gives you everything else. To match the dashboard's look, use the style classes from its stylesheet: `node.getStyleClass().add("card")`, plus `card-title`, `muted`, `value` and `warning-text`. `frcdash.ui.Style` has builders for these (`Style.card`, `Style.title`, `Style.value`) and the color constants for colors that change at runtime (`Style.text(Style.GREEN, 18)`).
 
 ## Writing to the robot safely
 

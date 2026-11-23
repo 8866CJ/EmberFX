@@ -1,40 +1,51 @@
 plugins {
-    id "java"
-    id "edu.wpi.first.GradleRIO" version "2026.2.1"
+    id 'java'
+    id 'edu.wpi.first.GradleRIO' version '2026.2.1'
 }
 
 // GradleRIO is used only for the WPILib libraries (ntcore, wpiutil) and their desktop natives.
 // Nothing here deploys to a roboRIO.
+//
+// Tasks:
+//   gradlew runJavaFX         run from source
+//   gradlew test              unit tests
+//   gradlew packageExe        build/dist/FRCDashboard/ (app with its own Java) and build/dist/FRCDashboard.zip
+//   gradlew packageInstaller  build/installer/FRCDashboard-Setup-<version>.exe (needs Inno Setup 6)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-def MAIN_CLASS = "frcdash.Launcher"
-def APP_NAME = "FRCDashboard"
-// Release builds pass -PappVersion=1.2.3 (taken from the git tag v1.2.3).
-def APP_VERSION = findProperty("appVersion") ?: "0.0.0" // jpackage needs plain numbers
-
-wpi.java.debugJni = false
+def appName = 'FRCDashboard'
+def mainClass = 'frcdash.app.Launcher'
+// Release builds pass -PappVersion=1.2.3 (from the git tag v1.2.3). jpackage needs plain numbers.
+def appVersion = findProperty('appVersion') ?: '0.0.0'
 
 def javafxVersion = '17.0.2'
+def javafxModules = ['javafx.base', 'javafx.controls', 'javafx.graphics']
 def osName = System.getProperty('os.name').toLowerCase()
-def platform = osName.contains('win') ? 'win' : osName.contains('mac') ? 'mac' : 'linux'
-def javafxModules = ['javafx.base', 'javafx.controls', 'javafx.fxml', 'javafx.graphics']
+def isWindows = osName.contains('win')
+def javafxPlatform = isWindows ? 'win' : osName.contains('mac') ? 'mac' : 'linux'
+
+wpi.java.debugJni = false
 
 dependencies {
     implementation wpi.java.deps.wpilib()
     nativeDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.desktop)
     nativeRelease wpi.java.deps.wpilibJniRelease(wpi.platforms.desktop)
 
-    implementation "org.openjfx:javafx-base:${javafxVersion}:${platform}"
-    implementation "org.openjfx:javafx-controls:${javafxVersion}:${platform}"
-    implementation "org.openjfx:javafx-fxml:${javafxVersion}:${platform}"
-    implementation "org.openjfx:javafx-graphics:${javafxVersion}:${platform}"
+    javafxModules.each { module ->
+        implementation "org.openjfx:${module.replace('.', '-')}:${javafxVersion}:${javafxPlatform}"
+    }
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs.add '-XDstringConcat=inline'
 }
 
 test {
@@ -46,126 +57,122 @@ wpi.java.configureTestTasks(test)
 jar {
     from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
     exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'module-info.class'
-    manifest { attributes 'Main-Class': MAIN_CLASS }
+    manifest { attributes 'Main-Class': mainClass }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-tasks.withType(JavaCompile) {
-    options.compilerArgs.add '-XDstringConcat=inline'
+/** Gradle services for running programs and copying files inside task actions. */
+interface BuildServices {
+    @javax.inject.Inject ExecOperations getExec()
+    @javax.inject.Inject FileSystemOperations getFiles()
+}
+def services = objects.newInstance(BuildServices)
+
+def javafxModulePath = {
+    configurations.runtimeClasspath.filter { it.name.startsWith('javafx-') && it.name.endsWith("-${javafxPlatform}.jar") }.asPath
 }
 
-def nativeExtract = { -> wpi.java.getDebugJni().getOrElse(false) ?
-    wpi.java.getExtractNativeDebugArtifacts() : wpi.java.getExtractNativeReleaseArtifacts() }
+// ---- run from source ----
 
-def getJavafxModulePath = {
-    def suffix = "-${platform}.jar"
-    def jars = configurations.runtimeClasspath.filter { it.name.contains('javafx-') && it.name.endsWith(suffix) }
-    return jars.isEmpty() ? null : jars.files.join(File.pathSeparator)
-}
-
-// .\gradlew.bat runJavaFX : run from source.
-task runJavaFX(type: JavaExec) {
+tasks.register('runJavaFX', JavaExec) {
     group = 'application'
     description = 'Runs the dashboard from source'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'frcdash.MainApp'
-    def extractTask = nativeExtract()
-    dependsOn extractTask
+    mainClass = 'frcdash.app.MainApp'
+    def natives = wpi.java.getExtractNativeReleaseArtifacts()
+    dependsOn natives
     doFirst {
-        def nativePath = extractTask.get().destinationDirectory.get().asFile.absolutePath
-        if (osName.contains('win')) {
-            environment 'PATH', (System.getenv('PATH') ?: '') + File.pathSeparator + nativePath
-        } else {
-            environment 'LD_LIBRARY_PATH', nativePath
-            environment 'DYLD_FALLBACK_LIBRARY_PATH', nativePath
-            environment 'DYLD_LIBRARY_PATH', nativePath
-        }
+        def nativePath = natives.get().destinationDirectory.get().asFile.absolutePath
+        if (isWindows) environment 'PATH', (System.getenv('PATH') ?: '') + File.pathSeparator + nativePath
+        else environment 'LD_LIBRARY_PATH', nativePath
         systemProperty 'java.library.path', nativePath
-        def modulePath = getJavafxModulePath()
-        if (modulePath != null) {
-            jvmArgs += ['--module-path', modulePath, '--add-modules', javafxModules.join(',')]
-        }
+        jvmArgs '--module-path', javafxModulePath(), '--add-modules', javafxModules.join(',')
     }
 }
 
-// .\gradlew.bat packageExe : build/dist/FRCDashboard/FRCDashboard.exe with its own Java runtime,
-// zipped to build/dist/FRCDashboard.zip. Needs a JDK with jpackage (the WPILib JDK has one).
-task packageExe {
+tasks.register('printJavaFXPath') {
+    group = 'help'
+    description = 'Prints the JVM arguments for running frcdash.app.MainApp from an IDE'
+    doLast {
+        logger.lifecycle("--module-path \"${javafxModulePath().replace('\\', '/')}\" --add-modules ${javafxModules.join(',')}")
+    }
+}
+
+// ---- packaging (Windows) ----
+
+def distDir = layout.buildDirectory.dir('dist')
+def appImageDir = layout.buildDirectory.dir("dist/${appName}")
+
+// The app folder: FRCDashboard.exe with its own Java runtime, the WPILib DLLs it needs, and the helper scripts.
+def appImage = tasks.register('appImage') {
     group = 'distribution'
-    description = 'Builds a self-contained Windows app folder and zip with jpackage'
-    def extractTask = wpi.java.getExtractNativeReleaseArtifacts()
-    dependsOn jar, extractTask
+    description = 'Builds build/dist/FRCDashboard/ with jpackage'
+    def natives = wpi.java.getExtractNativeReleaseArtifacts()
+    dependsOn jar, natives
     doLast {
         def input = layout.buildDirectory.dir('jpackage-input').get().asFile
-        def dist = layout.buildDirectory.dir('dist').get().asFile
-        project.delete(input, dist)
-        project.copy { from jar.archiveFile; into input }
+        def dist = distDir.get().asFile
+        services.files.delete { delete input, dist }
+        services.files.copy { from jar.archiveFile; into input }
 
-        def jpackage = new File(System.getProperty('java.home'), 'bin/jpackage' + (osName.contains('win') ? '.exe' : ''))
-        if (!jpackage.exists()) throw new GradleException("No jpackage at ${jpackage}. Run with JAVA_HOME set to a full JDK 17+ (the WPILib JDK, C:\\Users\\Public\\wpilib\\<year>\\jdk).")
-        project.exec {
+        def jpackage = new File(System.getProperty('java.home'), 'bin/jpackage' + (isWindows ? '.exe' : ''))
+        if (!jpackage.exists()) {
+            throw new GradleException("No jpackage at ${jpackage}. Run with JAVA_HOME set to a full JDK 17+, " +
+                "such as the WPILib JDK in C:\\Users\\Public\\wpilib\\<year>\\jdk.")
+        }
+        services.exec.exec {
             commandLine jpackage, '--type', 'app-image',
-                '--name', APP_NAME, '--app-version', APP_VERSION,
-                '--input', input, '--main-jar', jar.archiveFileName.get(), '--main-class', MAIN_CLASS,
+                '--name', appName, '--app-version', appVersion,
+                '--input', input, '--main-jar', jar.archiveFileName.get(), '--main-class', mainClass,
                 '--dest', dist,
-                // WPILib DLLs sit next to the .exe, where Windows also finds their dependencies.
+                // The WPILib DLLs sit next to the .exe, where Windows also finds their dependencies.
                 '--java-options', '-Djava.library.path=$APPDIR\\..'
         }
 
-        def image = new File(dist, APP_NAME)
-        project.copy {
+        def image = appImageDir.get().asFile
+        services.files.copy {
             // Only NetworkTables and what it links to; the rest of WPILib (OpenCV, HAL) isn't used.
-            from(extractTask.get().destinationDirectory) {
+            from(natives.get().destinationDirectory) {
                 include '**/ntcore*.dll', '**/wpinet*.dll', '**/wpiutil*.dll'
                 eachFile { it.path = it.name }
             }
             into image
             includeEmptyDirs = false
         }
-        project.copy { from 'scripts'; include 'register-ds.*', 'reset-config.bat'; into image }
-        project.copy { from "MODULES.md", "README.md", "PROJECT_OVERVIEW.md"; into image }
-        ant.zip(destfile: new File(dist, "${APP_NAME}.zip"), basedir: dist, includes: "${APP_NAME}/**")
-        println "Built ${image}\\${APP_NAME}.exe and ${dist}\\${APP_NAME}.zip"
+        services.files.copy { from 'scripts'; include 'register-ds.*', 'reset-config.bat'; into image }
+        services.files.copy { from 'README.md', 'PROJECT_OVERVIEW.md', 'MODULES.md'; into image }
     }
 }
 
-// .\gradlew.bat packageInstaller : build/installer/FRCDashboard-Setup-<version>.exe, one file that installs the app
-// (with its own Java), adds Start menu and desktop shortcuts, and registers an uninstaller. See installer/FRCDashboard.iss.
-// Needs Inno Setup 6 (winget install JRSoftware.InnoSetup --scope user).
-task packageInstaller {
+// The app folder as a portable zip. Running this also builds the folder.
+tasks.register('packageExe', Zip) {
     group = 'distribution'
-    description = 'Builds a single-file Windows installer from the app folder'
-    dependsOn packageExe
+    description = 'Builds the app folder and build/dist/FRCDashboard.zip'
+    dependsOn appImage
+    from(distDir) { include "${appName}/**" }
+    destinationDirectory = distDir
+    archiveFileName = "${appName}.zip"
+}
+
+// One-file installer made with Inno Setup from installer/FRCDashboard.iss.
+tasks.register('packageInstaller') {
+    group = 'distribution'
+    description = 'Builds build/installer/FRCDashboard-Setup-<version>.exe'
+    dependsOn 'packageExe'
     doLast {
-        def candidates = System.getenv('PATH').split(File.pathSeparator).collect { new File(it, 'ISCC.exe') } + [
+        def iscc = ((System.getenv('PATH') ?: '').split(File.pathSeparator).collect { new File(it, 'ISCC.exe') } + [
             new File(System.getenv('LOCALAPPDATA') ?: '', 'Programs/Inno Setup 6/ISCC.exe'),
-            new File(System.getenv('ProgramFiles(x86)') ?: '', 'Inno Setup 6/ISCC.exe')]
-        def iscc = candidates.find { it.exists() }
+            new File(System.getenv('ProgramFiles(x86)') ?: '', 'Inno Setup 6/ISCC.exe')]).find { it.exists() }
         if (iscc == null) {
-            throw new GradleException("Making the installer needs Inno Setup 6. Install it with:\n" +
-                "  winget install JRSoftware.InnoSetup --scope user\nthen run this again.")
+            throw new GradleException('Making the installer needs Inno Setup 6. Install it with:\n' +
+                '  winget install JRSoftware.InnoSetup --scope user\nthen run this again.')
         }
         def out = layout.buildDirectory.dir('installer').get().asFile
-        project.delete(out)
-        project.exec {
-            commandLine iscc, '/Q', "/DAppVersion=${APP_VERSION}",
-                "/DSourceDir=${layout.buildDirectory.dir("dist/${APP_NAME}").get().asFile}",
+        services.files.delete { delete out }
+        services.exec.exec {
+            commandLine iscc, '/Q', "/DAppVersion=${appVersion}", "/DSourceDir=${appImageDir.get().asFile}",
                 "/O${out}", file('installer/FRCDashboard.iss')
         }
-        println "Built " + new File(out, "${APP_NAME}-Setup-${APP_VERSION}.exe")
-    }
-}
-
-// Prints JavaFX VM arguments for running MainApp from an IDE.
-task printJavaFXPath {
-    group = 'help'
-    description = 'Prints JavaFX JAR paths for IDE VM arguments'
-    doLast {
-        def modulePath = getJavafxModulePath()
-        if (modulePath != null) {
-            println "--module-path \"${modulePath.replace('\\', '/')}\" --add-modules ${javafxModules.join(',')}"
-        } else {
-            println "JavaFX JARs not found. Run 'gradlew build' first."
-        }
+        logger.lifecycle("Built ${new File(out, "${appName}-Setup-${appVersion}.exe")}")
     }
 }

@@ -4,7 +4,6 @@ import edu.wpi.first.networktables.GenericPublisher;
 import edu.wpi.first.networktables.GenericSubscriber;
 import edu.wpi.first.networktables.Topic;
 import frcdash.NT;
-import frcdash.ui.Style;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -33,7 +32,7 @@ public final class InputTile extends Tile {
         field.setOnAction(e -> send());
         send.setOnAction(e -> send());
         HBox.setHgrow(field, Priority.ALWAYS);
-        current.setStyle("-fx-text-fill: " + Style.GREY + ";");
+        current.getStyleClass().add("muted");
         setCenter(new VBox(6, new HBox(6, field, send), current));
     }
 

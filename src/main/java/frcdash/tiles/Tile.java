@@ -1,6 +1,5 @@
 package frcdash.tiles;
 
-import frcdash.ui.Style;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
@@ -16,17 +15,19 @@ import java.util.List;
  * in track(...) so they are closed when the tile is removed. See TextTile for the smallest example.
  */
 public abstract class Tile extends BorderPane {
+    private static final System.Logger LOG = System.getLogger(Tile.class.getName());
+
     protected final TileConfig config;
     private final List<AutoCloseable> handles = new ArrayList<>();
 
     protected Tile(TileConfig config) {
         this.config = config;
         Label title = new Label(config.title());
-        title.setStyle("-fx-text-fill: " + Style.GREY + "; -fx-font-weight: 700;");
+        title.getStyleClass().add("card-title");
         setTop(title);
         BorderPane.setMargin(title, new Insets(0, 0, 6, 0));
         setPadding(new Insets(10, 12, 12, 12));
-        setStyle(Style.CARD);
+        getStyleClass().add("card");
     }
 
     /** This tile's saved settings. */
@@ -46,7 +47,8 @@ public abstract class Tile extends BorderPane {
         for (AutoCloseable h : handles) {
             try {
                 h.close();
-            } catch (Exception ignored) {
+            } catch (Exception e) { // keep closing the rest
+                LOG.log(System.Logger.Level.DEBUG, "Couldn't close " + h, e);
             }
         }
         handles.clear();
@@ -58,7 +60,7 @@ public abstract class Tile extends BorderPane {
             {
                 Label l = new Label("Unknown tile type \"" + typeId + "\".\nIs its module installed?");
                 l.setWrapText(true);
-                l.setStyle("-fx-text-fill: " + Style.YELLOW + ";");
+                l.getStyleClass().add("warning-text");
                 setCenter(l);
             }
 

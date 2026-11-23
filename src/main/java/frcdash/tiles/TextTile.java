@@ -11,13 +11,15 @@ import java.util.IllegalFormatException;
 
 /** Shows one topic of any type: numbers through a format, booleans as two texts, strings as-is. */
 public final class TextTile extends Tile {
+    private static final double MIN_FONT_SIZE = 8;
+
     private final GenericSubscriber sub;
-    private final Label value = new Label("--");
+    private final Label value;
 
     public TextTile(TileConfig config) {
         super(config);
         sub = track(NT.instance().getTopic(config.topic()).genericSubscribe());
-        value.setStyle(Style.text(Style.WHITE, (int) Math.max(8, config.optionDouble("fontSize"))));
+        value = Style.value("--", Math.max(MIN_FONT_SIZE, config.optionDouble("fontSize")));
         setCenter(value);
     }
 

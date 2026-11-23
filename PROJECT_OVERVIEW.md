@@ -136,36 +136,47 @@ git push origin v1.2.0
 
 ```
 src/main/java/frcdash/
-  MainApp, Launcher        start-up; loads team module jars
-  NT                       NetworkTables connection + .wpilog logging
-  Config                   config.json (schema in its class comment)
-  Layouts                  layout files: load from the robot, save to the robot project, merge
-  DashModule, ModuleContext, Setting    the plugin API
+  DashModule, ModuleContext,     the plugin API (package frcdash): keep it backward compatible,
+  Setting, NT                    team modules compile against it
+  app/
+    Launcher, MainApp            start-up and shutdown
+    ModuleLoader                 finds team module jars in ~/.frcdash/modules
+    SessionLog                   records every NetworkTables value to a .wpilog per connection
+  config/
+    Config                       config.json (schema in its class comment)
+    Layouts                      layout files: load from the robot, save to the robot project, merge
   tiles/
-    Tile                   base class: title, update(), track() for NT handles
-    TileType, TileConfig   what a tile type is; one tile's saved settings
-    TileTypes              the list of tile types + automatic tile picking
-    TextTile ... FieldTile one class per built-in tile
+    Tile                         base class: title, update(), track() for NT handles
+    TileType, TileConfig         what a tile type is; one tile's saved settings
+    TileTypes                    the list of tile types + automatic tile picking
+    TextTile ... FieldTile       one class per built-in tile
   topics/
-    LiveTopics             topics the robot publishes now
-    ProjectScanner         topic names found in robot code
-    Topics, FoundTopic     both merged
+    LiveTopics                   topics the robot publishes now
+    ProjectScanner               topic names found in robot code
+    Topics, FoundTopic           both merged
   ui/
-    DashboardView          window, header, tab row, Setup menu
-    TabPage                one tab: tiles, drag/resize/snap, drop target, tile menus
-    TileDialog             Add/Edit tile dialog
-    TopicList              searchable, draggable topic list
-    TopicsPanel, TopicBrowser   the side panel and the Browse dialog, both built on TopicList
-    Forms, Style           shared dialogs and colors
-installer/FRCDashboard.iss the Inno Setup installer script
+    DashboardView                the window: tabs, module tabs, frame loop
+    HeaderBar                    title, REC label, robot address picker, connection pill
+    SetupMenu                    the Setup menu and its actions
+    TabPage                      one tab: tiles, drag/resize/snap, drop target, tile menus
+    TileDialog                   Add/Edit tile dialog
+    TopicList                    searchable, draggable topic list
+    TopicsPanel, TopicBrowser    the side panel and the Browse dialog, both built on TopicList
+    Forms, Style                 shared dialogs; colors and small builders
+src/main/resources/frcdash/ui/
+  dashboard.css                  every fixed color and style
+src/test/java/frcdash/...        one test class per class under test, in the same package
+installer/FRCDashboard.iss       the Inno Setup installer script
 examples/
-  custom-tile/             a module that adds a tile type
-  custom-tab/              a module that adds a whole tab (shooter tuning)
+  custom-tile/                   a module that adds a tile type
+  custom-tab/                    a module that adds a whole tab (shooter tuning)
 ```
 
 To add a built-in tile, write a `Tile` subclass and add one line to `TileTypes.BUILT_IN`. `TextTile` is the smallest example.
 
 Conventions:
+- Fixed styling goes in `dashboard.css` as style classes. Use inline styles only for colors that change at runtime.
+- Report problems to the user, or log them with `System.Logger`. Don't swallow exceptions silently.
+- Formatting follows `.editorconfig`: 4-space indents and UTF-8. Line endings are handled by `.gitattributes`; `.bat` and `.ps1` files must be CRLF.
 - Source files are ASCII-only, because Windows compiles them as windows-1252. Build symbols like the REC dot from char codes.
-- Batch files use CRLF line endings, which `.gitattributes` enforces.
-- Run `.\gradlew.bat test` before sending changes.
+- Run `.\gradlew.bat test` before sending changes, and add a test for new logic next to the class it tests.

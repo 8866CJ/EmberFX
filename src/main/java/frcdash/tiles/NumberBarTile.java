@@ -11,14 +11,13 @@ import javafx.scene.layout.VBox;
 public final class NumberBarTile extends Tile {
     private final DoubleSubscriber sub;
     private final ProgressBar bar = new ProgressBar(0);
-    private final Label value = new Label("--");
+    private final Label value = Style.value("--", 20);
 
     public NumberBarTile(TileConfig config) {
         super(config);
         sub = track(NT.subDouble(config.topic(), 0.0));
         bar.setMaxWidth(Double.MAX_VALUE);
         bar.setPrefHeight(22);
-        value.setStyle(Style.text(Style.WHITE, 20));
         setCenter(new VBox(8, bar, value));
     }
 
