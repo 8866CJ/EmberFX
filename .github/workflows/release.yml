@@ -3,9 +3,9 @@
 #   git push origin v1.2.0
 #
 # Assets keep the same names in every release, so these links always point at the newest one:
-#   https://github.com/8866CJ/FRCDashboard/releases/latest/download/FRCDashboard-Setup.exe
-#   https://github.com/8866CJ/FRCDashboard/releases/latest/download/FRCDashboard-Portable.zip
-#   https://github.com/8866CJ/FRCDashboard/releases/latest/download/install.ps1
+#   https://github.com/8866CJ/EmberFX/releases/latest/download/EmberFX-Setup.exe
+#   https://github.com/8866CJ/EmberFX/releases/latest/download/EmberFX-Portable.zip
+#   https://github.com/8866CJ/EmberFX/releases/latest/download/install.ps1
 name: Release
 
 on:
@@ -45,19 +45,19 @@ jobs:
           $version = if ("${{ github.ref_type }}" -eq 'tag') { "${{ github.ref_name }}".TrimStart('v') } else { '0.0.0' }
           ./gradlew.bat test packageInstaller "-PappVersion=$version" --no-daemon
           if ($LASTEXITCODE -ne 0) {
-            Get-ChildItem build/dist/FRCDashboard -ErrorAction SilentlyContinue | Format-Table Name, Length
+            Get-ChildItem build/dist/EmberFX -ErrorAction SilentlyContinue | Format-Table Name, Length
             throw "Gradle failed (exit $LASTEXITCODE). The error is under 'What went wrong' above."
           }
           New-Item -ItemType Directory -Force release | Out-Null
-          Copy-Item "build/installer/FRCDashboard-Setup-$version.exe" release/FRCDashboard-Setup.exe
-          Copy-Item build/dist/FRCDashboard.zip release/FRCDashboard-Portable.zip
+          Copy-Item "build/installer/EmberFX-Setup-$version.exe" release/EmberFX-Setup.exe
+          Copy-Item build/dist/EmberFX.zip release/EmberFX-Portable.zip
           # install.ps1 downloads from this repo's latest release.
           (Get-Content scripts/install.ps1 -Raw).Replace('__REPO__', '${{ github.repository }}') | Set-Content release/install.ps1
 
       - name: Keep the build as a run artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FRCDashboard
+          name: EmberFX
           path: release/*
 
       - name: Publish the release

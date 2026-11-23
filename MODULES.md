@@ -1,6 +1,6 @@
 # Extending the dashboard
 
-Most teams never need code. Tabs and the eleven built-in tiles cover displays, buttons, toggles, sliders, inputs, graphs, auto choosers, cameras and the field map. When you want something they can't do, write a **team module**: a small jar dropped into `%USERPROFILE%\.frcdash\modules\`. The dashboard itself doesn't need to be recompiled.
+Most teams never need code. Tabs and the eleven built-in tiles cover displays, buttons, toggles, sliders, inputs, graphs, auto choosers, cameras and the field map. When you want something they can't do, write a **team module**: a small jar dropped into `%USERPROFILE%\.emberfx\modules\`. The dashboard itself doesn't need to be recompiled.
 
 A module can add:
 
@@ -87,9 +87,9 @@ Read them with `ctx.get("rpmTopic")` and `ctx.getDouble("maxRpm")`. Users edit t
 | `addMenuItem(item)` | An entry in the Setup menu |
 | `get`, `getDouble`, `getBool` | Current value of one of your settings |
 | `config()` + `save()` | Your own section of `config.json` |
-| `dataDir()` | `%USERPROFILE%\.frcdash\<id>\` for your files |
+| `dataDir()` | `%USERPROFILE%\.emberfx\<id>\` for your files |
 
-`NT.subDouble`, `subBool`, `pubDouble`, `pubBool` and `pubString` make NetworkTables handles. `NT.instance()` gives you everything else. To match the dashboard's look, use the style classes from its stylesheet: `node.getStyleClass().add("card")`, plus `card-title`, `muted`, `value` and `warning-text`. `frcdash.ui.Style` has builders for these (`Style.card`, `Style.title`, `Style.value`) and the color constants for colors that change at runtime (`Style.text(Style.GREEN, 18)`).
+`NT.subDouble`, `subBool`, `pubDouble`, `pubBool` and `pubString` make NetworkTables handles. `NT.instance()` gives you everything else. To match the dashboard's look, use the style classes from its stylesheet: `node.getStyleClass().add("card")`, plus `card-title`, `muted`, `value` and `warning-text`. `emberfx.ui.Style` has builders for these (`Style.card`, `Style.title`, `Style.value`) and the color constants for colors that change at runtime (`Style.text(Style.GREEN, 18)`).
 
 ## Writing to the robot safely
 
@@ -104,11 +104,11 @@ The dashboard can close or disconnect at any moment, and everything it published
 
    ```groovy
    dependencies {
-       compileOnly files('path/to/FRCDashboard.jar')   // in the app folder: FRCDashboard\app\FRCDashboard.jar
+       compileOnly files('path/to/EmberFX.jar')   // in the app folder: EmberFX\app\EmberFX.jar
    }
    ```
 
-2. **Register your module class.** Create `src/main/resources/META-INF/services/frcdash.DashModule` containing one line, your class name:
+2. **Register your module class.** Create `src/main/resources/META-INF/services/emberfx.DashModule` containing one line, your class name:
 
    ```
    team.example.LimitLightModule
@@ -118,11 +118,11 @@ The dashboard can close or disconnect at any moment, and everything it published
 
    ```powershell
    .\gradlew.bat -p examples\custom-tile jar
-   copy build\custom-tile\libs\custom-tile.jar $env:USERPROFILE\.frcdash\modules\
+   copy build\custom-tile\libs\custom-tile.jar $env:USERPROFILE\.emberfx\modules\
    ```
 
 4. **Reopen the dashboard.** Modules are on by default. Turn them off in **Setup > Settings**.
 
 If a module throws while starting or updating, the dashboard shows a warning and keeps running without it. A tile whose type isn't installed shows a placeholder and keeps its settings.
 
-The API is NetworkTables (`edu.wpi.first.networktables`), JavaFX 17, Jackson, and the classes in `frcdash`, `frcdash.tiles` and `frcdash.ui.Style`. Keep `id()` and tile type ids the same between versions, or saved layouts won't find them.
+The API is NetworkTables (`edu.wpi.first.networktables`), JavaFX 17, Jackson, and the classes in `emberfx`, `emberfx.tiles` and `emberfx.ui.Style`. Keep `id()` and tile type ids the same between versions, or saved layouts won't find them.

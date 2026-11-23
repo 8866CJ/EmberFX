@@ -9,16 +9,16 @@ plugins {
 // Tasks:
 //   gradlew runJavaFX         run from source
 //   gradlew test              unit tests
-//   gradlew packageExe        build/dist/FRCDashboard/ (app with its own Java) and build/dist/FRCDashboard.zip
-//   gradlew packageInstaller  build/installer/FRCDashboard-Setup-<version>.exe (needs Inno Setup 6)
+//   gradlew packageExe        build/dist/EmberFX/ (app with its own Java) and build/dist/EmberFX.zip
+//   gradlew packageInstaller  build/installer/EmberFX-Setup-<version>.exe (needs Inno Setup 6)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-def appName = 'FRCDashboard'
-def mainClass = 'frcdash.app.Launcher'
+def appName = 'EmberFX'
+def mainClass = 'emberfx.app.Launcher'
 // Release builds pass -PappVersion=1.2.3 (from the git tag v1.2.3). jpackage needs plain numbers.
 def appVersion = findProperty('appVersion') ?: '0.0.0'
 
@@ -78,7 +78,7 @@ tasks.register('runJavaFX', JavaExec) {
     group = 'application'
     description = 'Runs the dashboard from source'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'frcdash.app.MainApp'
+    mainClass = 'emberfx.app.MainApp'
     def natives = wpi.java.getExtractNativeReleaseArtifacts()
     dependsOn natives
     doFirst {
@@ -92,7 +92,7 @@ tasks.register('runJavaFX', JavaExec) {
 
 tasks.register('printJavaFXPath') {
     group = 'help'
-    description = 'Prints the JVM arguments for running frcdash.app.MainApp from an IDE'
+    description = 'Prints the JVM arguments for running emberfx.app.MainApp from an IDE'
     doLast {
         logger.lifecycle("--module-path \"${javafxModulePath().replace('\\', '/')}\" --add-modules ${javafxModules.join(',')}")
     }
@@ -103,10 +103,10 @@ tasks.register('printJavaFXPath') {
 def distDir = layout.buildDirectory.dir('dist')
 def appImageDir = layout.buildDirectory.dir("dist/${appName}")
 
-// The app folder: FRCDashboard.exe with its own Java runtime, the WPILib DLLs it needs, and the helper scripts.
+// The app folder: EmberFX.exe with its own Java runtime, the WPILib DLLs it needs, and the helper scripts.
 def appImage = tasks.register('appImage') {
     group = 'distribution'
-    description = 'Builds build/dist/FRCDashboard/ with jpackage'
+    description = 'Builds build/dist/EmberFX/ with jpackage'
     def natives = wpi.java.getExtractNativeReleaseArtifacts()
     dependsOn jar, natives
     doLast {
@@ -147,17 +147,17 @@ def appImage = tasks.register('appImage') {
 // The app folder as a portable zip. Running this also builds the folder.
 tasks.register('packageExe', Zip) {
     group = 'distribution'
-    description = 'Builds the app folder and build/dist/FRCDashboard.zip'
+    description = 'Builds the app folder and build/dist/EmberFX.zip'
     dependsOn appImage
     from(distDir) { include "${appName}/**" }
     destinationDirectory = distDir
     archiveFileName = "${appName}.zip"
 }
 
-// One-file installer made with Inno Setup from installer/FRCDashboard.iss.
+// One-file installer made with Inno Setup from installer/EmberFX.iss.
 tasks.register('packageInstaller') {
     group = 'distribution'
-    description = 'Builds build/installer/FRCDashboard-Setup-<version>.exe'
+    description = 'Builds build/installer/EmberFX-Setup-<version>.exe'
     dependsOn 'packageExe'
     doLast {
         def iscc = ((System.getenv('PATH') ?: '').split(File.pathSeparator).collect { new File(it, 'ISCC.exe') } + [
@@ -171,7 +171,7 @@ tasks.register('packageInstaller') {
         services.files.delete { delete out }
         services.exec.exec {
             commandLine iscc, '/Q', "/DAppVersion=${appVersion}", "/DSourceDir=${appImageDir.get().asFile}",
-                "/O${out}", file('installer/FRCDashboard.iss')
+                "/O${out}", file('installer/EmberFX.iss')
         }
         logger.lifecycle("Built ${new File(out, "${appName}-Setup-${appVersion}.exe")}")
     }

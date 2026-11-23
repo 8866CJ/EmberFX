@@ -1,7 +1,7 @@
 @echo off
 rem Builds the dashboard for sharing:
-rem   build\installer\FRCDashboard-Setup-<version>.exe  one-file installer (needs Inno Setup 6)
-rem   build\dist\FRCDashboard.zip                       portable folder, no install needed
+rem   build\installer\EmberFX-Setup-<version>.exe  one-file installer (needs Inno Setup 6)
+rem   build\dist\EmberFX.zip                       portable folder, no install needed
 rem Both carry their own Java runtime. Only the person building needs WPILib installed.
 setlocal
 cd /d "%~dp0.."
@@ -19,11 +19,11 @@ call "%CD%\gradlew.bat" packageInstaller --offline -q
 if errorlevel 1 (
     echo.
     echo The portable zip is built, but not the installer. See the message above.
-    echo Portable zip: %CD%\build\dist\FRCDashboard.zip
+    echo Portable zip: %CD%\build\dist\EmberFX.zip
     pause
     exit /b 1
 )
 echo.
 echo Installer:    in %CD%\build\installer
-echo Portable zip: %CD%\build\dist\FRCDashboard.zip
+echo Portable zip: %CD%\build\dist\EmberFX.zip
 pause

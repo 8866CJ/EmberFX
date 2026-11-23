@@ -1,13 +1,13 @@
-// A team module for FRC Dashboard. Build it with the dashboard's Gradle wrapper:
+// A team module for EmberFX. Build it with the dashboard's Gradle wrapper:
 //   gradlew.bat -p examples\custom-tile jar      (from the repo root)
-// then copy build\custom-tile\libs\custom-tile.jar into %USERPROFILE%\.frcdash\modules\ and reopen the dashboard.
+// then copy build\custom-tile\libs\custom-tile.jar into %USERPROFILE%\.emberfx\modules\ and reopen the dashboard.
 plugins {
     id "java"
 }
 
 // The dashboard jar provides the module API, NetworkTables, JavaFX and Jackson at runtime.
-// Point at the jar inside the app folder (FRCDashboard\app\FRCDashboard.jar) or the repo build.
-def dashboardJar = findProperty('dashboardJar') ?: '../../build/libs/FRCDashboard.jar'
+// Point at the jar inside the app folder (EmberFX\app\EmberFX.jar) or the repo build.
+def dashboardJar = findProperty('dashboardJar') ?: '../../build/libs/EmberFX.jar'
 
 // Output goes under the repo's build\ folder, which git already ignores.
 layout.buildDirectory = file('../../build/custom-tile')

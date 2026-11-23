@@ -1,14 +1,14 @@
 package team.example;
 
 import edu.wpi.first.networktables.DoubleSubscriber;
-import frcdash.DashModule;
-import frcdash.ModuleContext;
-import frcdash.NT;
-import frcdash.Setting;
-import frcdash.tiles.Tile;
-import frcdash.tiles.TileConfig;
-import frcdash.tiles.TileType;
-import frcdash.ui.Style;
+import emberfx.DashModule;
+import emberfx.ModuleContext;
+import emberfx.NT;
+import emberfx.Setting;
+import emberfx.tiles.Tile;
+import emberfx.tiles.TileConfig;
+import emberfx.tiles.TileType;
+import emberfx.ui.Style;
 import javafx.scene.control.Label;
 
 import java.util.List;

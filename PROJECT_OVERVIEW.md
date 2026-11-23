@@ -1,18 +1,18 @@
-# FRC Dashboard
+# EmberFX
 
 A driver dashboard for any FRC team. It talks to the robot over NetworkTables 4, logs everything it sees to `.wpilog` files, and lets each team build its own tabs out of tiles. Teams can add their own tile types and tabs as plugins.
 
 ## Install
 
-Run `FRCDashboard-Setup-<version>.exe`.
-- It installs to `%LOCALAPPDATA%\Programs\FRC Dashboard` without admin rights, or to Program Files if you choose "all users".
+Run `EmberFX-Setup-<version>.exe`.
+- It installs to `%LOCALAPPDATA%\Programs\EmberFX` without admin rights, or to Program Files if you choose "all users".
 - It adds Start menu and desktop shortcuts, and an uninstaller in Apps & Features.
 - Java is included.
-- Installing a newer version upgrades in place. Your settings and logs in `%USERPROFILE%\.frcdash` are kept on upgrade and uninstall.
+- Installing a newer version upgrades in place. Your settings and logs in `%USERPROFILE%\.emberfx` are kept on upgrade and uninstall.
 
 To make the Driver Station open it, close the DS and choose **Setup > Use as Driver Station dashboard**.
 
-No install: `FRCDashboard.zip` is the same app as a portable folder.
+No install: `EmberFX.zip` is the same app as a portable folder.
 
 **From source:** `.\gradlew.bat runJavaFX`. This needs WPILib installed (the year in `build.gradle`).
 
@@ -78,13 +78,13 @@ The Topics panel and the Add tile > Browse dialog both list two sources, with se
 
 - **Setup > Save config as / Load config** share the whole config, which also includes team, title and module settings.
 
-Everything is stored in `%USERPROFILE%\.frcdash\config.json`.
+Everything is stored in `%USERPROFILE%\.emberfx\config.json`.
 
 ## Logging
 
 While connected, the dashboard saves **everything** the robot publishes over NetworkTables.
 
-- Files: `%USERPROFILE%\.frcdash\logs\frc<team>_<date>_<time>.wpilog`. A new file starts each time the robot connects.
+- Files: `%USERPROFILE%\.emberfx\logs\frc<team>_<date>_<time>.wpilog`. A new file starts each time the robot connects.
 - A red **REC** label shows the file being written.
 - Open the files in AdvantageScope (File > Open Log). Robot data is under `NT:/`.
 - Anything that happens while disconnected isn't in these files. Check the Driver Station logs for that.
@@ -93,16 +93,16 @@ While connected, the dashboard saves **everything** the robot publishes over Net
 
 | Path | What |
 |---|---|
-| `%USERPROFILE%\.frcdash\config.json` | All settings, tabs and tiles |
-| `%USERPROFILE%\.frcdash\logs\` | NetworkTables logs |
-| `%USERPROFILE%\.frcdash\modules\` | Team module jars |
-| `%USERPROFILE%\.frcdash\<module id>\` | A module's own data |
+| `%USERPROFILE%\.emberfx\config.json` | All settings, tabs and tiles |
+| `%USERPROFILE%\.emberfx\logs\` | NetworkTables logs |
+| `%USERPROFILE%\.emberfx\modules\` | Team module jars |
+| `%USERPROFILE%\.emberfx\<module id>\` | A module's own data |
 
 ## Building
 
 `scripts\build-exe.bat` builds both:
-- `build\installer\FRCDashboard-Setup-<version>.exe`, the one-file installer
-- `build\dist\FRCDashboard.zip`, the portable folder
+- `build\installer\EmberFX-Setup-<version>.exe`, the one-file installer
+- `build\dist\EmberFX.zip`, the portable folder
 
 Both include Java. Building needs WPILib (for the JDK and libraries), and the installer also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup --scope user`.
 
@@ -126,21 +126,21 @@ git push origin v1.2.0
 
 | Link | What |
 |---|---|
-| `https://github.com/8866CJ/FRCDashboard/releases/latest/download/FRCDashboard-Setup.exe` | Installer |
-| `https://github.com/8866CJ/FRCDashboard/releases/latest/download/FRCDashboard-Portable.zip` | Portable zip |
-| `https://github.com/8866CJ/FRCDashboard/releases/latest/download/install.ps1` | The script for `irm <link> \| iex` |
+| `https://github.com/8866CJ/EmberFX/releases/latest/download/EmberFX-Setup.exe` | Installer |
+| `https://github.com/8866CJ/EmberFX/releases/latest/download/EmberFX-Portable.zip` | Portable zip |
+| `https://github.com/8866CJ/EmberFX/releases/latest/download/install.ps1` | The script for `irm <link> \| iex` |
 
 `.github/workflows/build.yml` runs the tests on every push and pull request.
 
 ## Code tour
 
 ```
-src/main/java/frcdash/
-  DashModule, ModuleContext,     the plugin API (package frcdash): keep it backward compatible,
+src/main/java/emberfx/
+  DashModule, ModuleContext,     the plugin API (package emberfx): keep it backward compatible,
   Setting, NT                    team modules compile against it
   app/
     Launcher, MainApp            start-up and shutdown
-    ModuleLoader                 finds team module jars in ~/.frcdash/modules
+    ModuleLoader                 finds team module jars in ~/.emberfx/modules
     SessionLog                   records every NetworkTables value to a .wpilog per connection
   config/
     Config                       config.json (schema in its class comment)
@@ -163,10 +163,10 @@ src/main/java/frcdash/
     TopicList                    searchable, draggable topic list
     TopicsPanel, TopicBrowser    the side panel and the Browse dialog, both built on TopicList
     Forms, Style                 shared dialogs; colors and small builders
-src/main/resources/frcdash/ui/
+src/main/resources/emberfx/ui/
   dashboard.css                  every fixed color and style
-src/test/java/frcdash/...        one test class per class under test, in the same package
-installer/FRCDashboard.iss       the Inno Setup installer script
+src/test/java/emberfx/...        one test class per class under test, in the same package
+installer/EmberFX.iss       the Inno Setup installer script
 examples/
   custom-tile/                   a module that adds a tile type
   custom-tab/                    a module that adds a whole tab (shooter tuning)

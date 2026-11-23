@@ -1,20 +1,22 @@
-# FRC Dashboard
+# EmberFX
 
 A driver dashboard any FRC team can use. Build your own tabs by dragging topics onto them. Tiles include text, boolean box, number bar, graph, button, toggle, slider, input, auto chooser, camera stream and field map. Topics come from the live robot or straight from your robot code. Every NetworkTables value is recorded to `.wpilog` files for AdvantageScope.
 
 ## Install (Windows)
 
-**Installer:** download `FRCDashboard-Setup.exe` from the [latest release](https://github.com/8866CJ/FRCDashboard/releases/latest) and run it.
+**Installer:** download `EmberFX-Setup.exe` from the [latest release](https://github.com/8866CJ/EmberFX/releases/latest) and run it.
 
 **Or paste this into PowerShell / Windows Terminal:**
 
 ```powershell
-irm https://github.com/8866CJ/FRCDashboard/releases/latest/download/install.ps1 | iex
+irm https://github.com/8866CJ/EmberFX/releases/latest/download/install.ps1 | iex
 ```
 
 Both include Java and need no admin rights. Running either again updates the dashboard. Your settings are kept.
 
-No install: `FRCDashboard-Portable.zip` from the same release runs from any folder.
+No install: `EmberFX-Portable.zip` from the same release runs from any folder.
+
+**Coming from FRC Dashboard 1.0.x?** EmberFX is the same app, renamed. Installing it upgrades in place and moves your settings, layouts and logs over. Afterwards, run **Setup > Use as Driver Station dashboard** again, because the program file has a new name.
 
 ## Get started
 

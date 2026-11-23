@@ -1,4 +1,4 @@
-# Points the Driver Station's "Default" dashboard at FRCDashboard.exe.
+# Points the Driver Station's "Default" dashboard at EmberFX.exe.
 # Backs up the DS settings file first, and refuses to run while the DS is open
 # (the DS overwrites this file when it closes, which would undo the change).
 # CmdletBinding makes a mistyped option an error instead of being silently ignored.
@@ -12,13 +12,13 @@ $ini = $Ini
 
 if (-not $Exe) {
     # Next to this script in the app folder, else the build output in the repo.
-    foreach ($p in @("$PSScriptRoot\FRCDashboard.exe", "$PSScriptRoot\..\build\dist\FRCDashboard\FRCDashboard.exe")) {
+    foreach ($p in @("$PSScriptRoot\EmberFX.exe", "$PSScriptRoot\..\build\dist\EmberFX\EmberFX.exe")) {
         if (Test-Path $p) { $Exe = $p; break }
     }
 }
 if (-not $Exe -or -not (Test-Path $Exe)) {
-    Write-Host "Can't find FRCDashboard.exe. Build it with scripts\build-exe.bat, or pass its path:"
-    Write-Host "  register-ds.bat C:\path\to\FRCDashboard.exe"
+    Write-Host "Can't find EmberFX.exe. Build it with scripts\build-exe.bat, or pass its path:"
+    Write-Host "  register-ds.bat C:\path\to\EmberFX.exe"
     exit 1
 }
 $Exe = (Resolve-Path $Exe).Path
