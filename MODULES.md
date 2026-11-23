@@ -1,6 +1,6 @@
 # Extending the dashboard
 
-Most teams never need code. Tabs and the eleven built-in tiles cover displays, buttons, toggles, sliders, inputs, graphs, auto choosers, cameras and the field map. When you want something they can't do, write a **team module**: a small jar dropped into `%USERPROFILE%\.emberfx\modules\`. The dashboard itself doesn't need to be recompiled.
+Most teams never need code. Tabs and the seventeen built-in tiles cover displays, gauges, checklists, alerts, buttons, toggles, sliders, inputs, graphs, auto choosers, the match timer, swerve, cameras and the field map. When you want something they can't do, write a **team module**: a small jar dropped into `%USERPROFILE%\.emberfx\modules\`. The dashboard itself doesn't need to be recompiled.
 
 A module can add:
 

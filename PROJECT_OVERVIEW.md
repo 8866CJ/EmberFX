@@ -39,6 +39,12 @@ Team modules can add their own tabs after yours.
 | Boolean box | Green/red box with optional text and colors | booleans |
 | Number bar | A bar between a min and a max | |
 | Graph | A number over the last N seconds | |
+| Radial gauge | A dial from min to max with the value in the middle; optional red-above warning | |
+| Linear gauge | Segmented bars across or up. Point it at a table (e.g. `/SmartDashboard/Motor Temps`) for one labelled bar per number in it | |
+| Checklist | A check per true/false value in a table (e.g. `/SmartDashboard/Ready`) | |
+| Alerts | Errors, warnings and infos from a WPILib `Alert` group | WPILib Alerts |
+| Swerve | Chassis heading, module angles and speed arrows from a `SwerveDrive` sendable (the layout Elastic uses; the Swerve tile's class comment has the robot code) | `SwerveDrive` |
+| Match timer | Time left (from a topic such as `SmartDashboard.putNumber("Match Time", DriverStation.getMatchTime())`), turning yellow then red, with mode, alliance, match number and game data from `/FMSInfo` | |
 | Button | Pulse (true for 200 ms) or hold. On a robot `Command`, it runs the command and lights up while it runs | Commands |
 | Toggle | Turns a robot boolean on and off | booleans the robot reads |
 | Slider | Sends a number as you drag and follows the robot's value otherwise | |
@@ -149,7 +155,7 @@ src/main/java/emberfx/
     Tile                         base class: title, update(), track() for NT handles
     TileType, TileConfig         what a tile type is; one tile's saved settings
     TileTypes                    the list of tile types + automatic tile picking
-    TextTile ... FieldTile       one class per built-in tile
+    TextTile ... MatchTimerTile  one class per built-in tile; CanvasTile is the base for drawn ones, TopicGroup reads tables
   topics/
     LiveTopics                   topics the robot publishes now
     ProjectScanner               topic names found in robot code

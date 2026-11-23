@@ -4,10 +4,8 @@ import edu.wpi.first.networktables.DoubleArraySubscriber;
 import edu.wpi.first.networktables.TopicInfo;
 import emberfx.NT;
 import emberfx.ui.Style;
-import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
-import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 
 import java.io.File;
@@ -21,10 +19,9 @@ import java.util.Map;
  * Field size is an option, and teams can point the "Field image" option at their own picture of
  * this year's field. Poses are in meters, with the origin at the bottom left (blue alliance wall).
  */
-public final class FieldTile extends Tile {
+public final class FieldTile extends CanvasTile {
     private static final long RESCAN_MS = 1000;
 
-    private final Canvas canvas = new Canvas();
     private final Map<String, DoubleArraySubscriber> objects = new LinkedHashMap<>(); // object name -> poses
     private final Image background;
     private long lastScan;
@@ -33,12 +30,6 @@ public final class FieldTile extends Tile {
         super(config);
         String image = config.option("image").trim();
         background = image.isEmpty() || !new File(image).isFile() ? null : new Image(new File(image).toURI().toString());
-
-        Pane holder = new Pane(canvas);
-        canvas.widthProperty().bind(holder.widthProperty());
-        canvas.heightProperty().bind(holder.heightProperty());
-        holder.setMinSize(0, 0);
-        setCenter(holder);
     }
 
     @Override
@@ -48,7 +39,7 @@ public final class FieldTile extends Tile {
             lastScan = now;
             findObjects();
         }
-        draw();
+        super.update();
     }
 
     /** Subscribe to every object the robot adds to the Field2d (Robot, plus any getObject("...") it uses). */
@@ -60,10 +51,8 @@ public final class FieldTile extends Tile {
         }
     }
 
-    private void draw() {
-        GraphicsContext g = canvas.getGraphicsContext2D();
-        double w = canvas.getWidth(), h = canvas.getHeight();
-        g.clearRect(0, 0, w, h);
+    @Override
+    protected void draw(GraphicsContext g, double w, double h) {
         double length = positive(config.optionDouble("length"), 17.5), width = positive(config.optionDouble("width"), 8.0);
         double scale = Math.min(w / length, h / width);
         double ox = (w - length * scale) / 2, oy = (h - width * scale) / 2; // center the field in the tile

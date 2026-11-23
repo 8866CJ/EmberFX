@@ -1,6 +1,6 @@
 # EmberFX
 
-A driver dashboard any FRC team can use. Build your own tabs by dragging topics onto them. Tiles include text, boolean box, number bar, graph, button, toggle, slider, input, auto chooser, camera stream and field map. Topics come from the live robot or straight from your robot code. Every NetworkTables value is recorded to `.wpilog` files for AdvantageScope.
+A driver dashboard any FRC team can use. Build your own tabs by dragging topics onto them. Tiles include text, boolean box, number bar, graph, radial and linear gauges, checklist, alerts, button, toggle, slider, input, auto chooser, match timer, swerve view, camera stream and field map. Topics come from the live robot or straight from your robot code. Every NetworkTables value is recorded to `.wpilog` files for AdvantageScope.
 
 ## Install (Windows)
 
