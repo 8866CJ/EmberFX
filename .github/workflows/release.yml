@@ -11,6 +11,7 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch: # re-run by hand from the Actions tab (builds without publishing unless run on a tag)
 
 permissions:
   contents: write
@@ -18,28 +19,47 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress -y
+      - name: Install Inno Setup and put its compiler on PATH
+        run: |
+          $iscc = Get-ChildItem 'C:\Program Files (x86)\Inno Setup*', 'C:\Program Files\Inno Setup*' -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) {
+            choco install innosetup --no-progress -y
+            $iscc = Get-ChildItem 'C:\Program Files (x86)\Inno Setup*', 'C:\Program Files\Inno Setup*' -Filter ISCC.exe -Recurse | Select-Object -First 1
+          }
+          if (-not $iscc) { throw 'Inno Setup was installed but ISCC.exe was not found.' }
+          Write-Host "Using $($iscc.FullName)"
+          $iscc.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
       - name: Build installer and portable zip
-        shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
-          ./gradlew.bat test packageInstaller "-PappVersion=$version" --no-daemon
+          $version = if ("${{ github.ref_type }}" -eq 'tag') { "${{ github.ref_name }}".TrimStart('v') } else { '0.0.0' }
+          ./gradlew.bat test packageInstaller "-PappVersion=$version" --no-daemon --stacktrace
+          if ($LASTEXITCODE -ne 0) { throw "Gradle failed (exit $LASTEXITCODE). The error is under 'What went wrong' above." }
           New-Item -ItemType Directory -Force release | Out-Null
           Copy-Item "build/installer/FRCDashboard-Setup-$version.exe" release/FRCDashboard-Setup.exe
           Copy-Item build/dist/FRCDashboard.zip release/FRCDashboard-Portable.zip
           # install.ps1 downloads from this repo's latest release.
           (Get-Content scripts/install.ps1 -Raw).Replace('__REPO__', '${{ github.repository }}') | Set-Content release/install.ps1
 
-      - uses: softprops/action-gh-release@v2
+      - name: Keep the build as a run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FRCDashboard
+          path: release/*
+
+      - name: Publish the release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
         with:
           files: release/*
           generate_release_notes: true

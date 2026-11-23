@@ -1,4 +1,4 @@
-# Runs the tests and builds the app on every push and pull request.
+# Runs the tests and builds the app and example modules on every push and pull request.
 name: Build
 
 on:
@@ -9,14 +9,20 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
       - name: Test and build the example modules
         run: |
           ./gradlew.bat test jar --no-daemon
+          if ($LASTEXITCODE -ne 0) { throw 'Tests or build failed.' }
           ./gradlew.bat -p examples/custom-tile jar --no-daemon
+          if ($LASTEXITCODE -ne 0) { throw 'examples/custom-tile failed.' }
           ./gradlew.bat -p examples/custom-tab jar --no-daemon
+          if ($LASTEXITCODE -ne 0) { throw 'examples/custom-tab failed.' }
