@@ -27,7 +27,10 @@ PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputBaseFilename=FRCDashboard-Setup-{#AppVersion}
+; jpackage writes this icon next to the exe on some JDK builds only, so it's optional.
+#if FileExists(AddBackslash(SourceDir) + "FRCDashboard.ico")
 SetupIconFile={#SourceDir}\FRCDashboard.ico
+#endif
 UninstallDisplayIcon={app}\FRCDashboard.exe
 Compression=lzma2/max
 SolidCompression=yes

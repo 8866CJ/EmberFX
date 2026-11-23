@@ -43,8 +43,11 @@ jobs:
       - name: Build installer and portable zip
         run: |
           $version = if ("${{ github.ref_type }}" -eq 'tag') { "${{ github.ref_name }}".TrimStart('v') } else { '0.0.0' }
-          ./gradlew.bat test packageInstaller "-PappVersion=$version" --no-daemon --stacktrace
-          if ($LASTEXITCODE -ne 0) { throw "Gradle failed (exit $LASTEXITCODE). The error is under 'What went wrong' above." }
+          ./gradlew.bat test packageInstaller "-PappVersion=$version" --no-daemon
+          if ($LASTEXITCODE -ne 0) {
+            Get-ChildItem build/dist/FRCDashboard -ErrorAction SilentlyContinue | Format-Table Name, Length
+            throw "Gradle failed (exit $LASTEXITCODE). The error is under 'What went wrong' above."
+          }
           New-Item -ItemType Directory -Force release | Out-Null
           Copy-Item "build/installer/FRCDashboard-Setup-$version.exe" release/FRCDashboard-Setup.exe
           Copy-Item build/dist/FRCDashboard.zip release/FRCDashboard-Portable.zip
