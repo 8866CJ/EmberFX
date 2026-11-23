@@ -30,7 +30,7 @@ public final class TopicBrowser {
         d.setHeaderText(summary(topics));
         d.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         d.getDialogPane().setContent(new VBox(8, list,
-            new Label("Tip: use Setup > Link robot project to see topics before the robot is on.")));
+            new Label("Tip: use Menu > Link robot project to see topics before the robot is on.")));
         list.onChoose(t -> {
             d.setResult(ButtonType.OK);
             d.close();

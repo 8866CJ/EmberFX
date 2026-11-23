@@ -26,7 +26,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The Setup menu and everything it does: settings, robot project, layouts, Driver Station, config files. */
+/** The main menu (top of the left bar) and everything it does: settings, robot project, layouts, Driver Station, config files. */
 final class SetupMenu {
     private static final System.Logger LOG = System.getLogger(SetupMenu.class.getName());
     private static final String REPLACE_SAME_NAME = "Replace tabs with the same name, keep the rest";
@@ -129,7 +129,7 @@ final class SetupMenu {
 
     private void saveLayoutToProject() {
         if (Config.robotProject().isEmpty()) {
-            Forms.error("Link your robot project first (Setup > Link robot project).");
+            Forms.error("Link your robot project first (Menu > Link robot project).");
             return;
         }
         try {

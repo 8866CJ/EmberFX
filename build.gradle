@@ -124,7 +124,7 @@ def appImage = tasks.register('appImage') {
             commandLine jpackage, '--type', 'app-image',
                 '--name', appName, '--app-version', appVersion,
                 '--input', input, '--main-jar', jar.archiveFileName.get(), '--main-class', mainClass,
-                '--dest', dist,
+                '--dest', dist, '--icon', file('installer/emberfx.ico'),
                 // The WPILib DLLs sit next to the .exe, where Windows also finds their dependencies.
                 '--java-options', '-Djava.library.path=$APPDIR\\..'
         }
@@ -141,6 +141,7 @@ def appImage = tasks.register('appImage') {
         }
         services.files.copy { from 'scripts'; include 'register-ds.*', 'reset-config.bat'; into image }
         services.files.copy { from 'README.md', 'PROJECT_OVERVIEW.md', 'MODULES.md'; into image }
+        services.files.copy { from 'installer/emberfx.ico'; into image; rename { "${appName}.ico" } } // the installer's icon
     }
 }
 

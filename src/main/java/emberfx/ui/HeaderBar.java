@@ -66,8 +66,8 @@ final class HeaderBar extends HBox {
     private static ComboBox<String> robotPicker(TextField customHost) {
         String robot = DashboardView.robotHost(Config.team());
         ComboBox<String> target = new ComboBox<>(FXCollections.observableArrayList(
-            robot.isEmpty() ? "Robot (set team in Setup)" : "Physical Robot (" + robot + ")", "Localhost (" + LOCALHOST + ")", CUSTOM));
-        target.setPrefWidth(210);
+            robot.isEmpty() ? "Robot (set team in Settings)" : "Physical Robot (" + robot + ")", "Localhost (" + LOCALHOST + ")", CUSTOM));
+        target.setPrefWidth(230);
         customHost.setPromptText("Enter host, ex: " + (robot.isEmpty() ? "10.0.0.2" : robot));
         customHost.setPrefWidth(200);
         customHost.managedProperty().bind(customHost.visibleProperty());

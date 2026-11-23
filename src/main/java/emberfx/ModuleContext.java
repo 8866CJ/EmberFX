@@ -35,7 +35,7 @@ public final class ModuleContext {
     /** Something small on the right of the tab row. update runs every frame (may be null). */
     public void addHeader(Node node, Runnable update) { window.addHeader(node, update); }
 
-    /** An entry in the Setup menu. */
+    /** An entry in the main menu (top of the left bar). */
     public void addMenuItem(MenuItem item) { window.addMenuItem(item); }
 
     /** A setting's current value: from config.json, else its default. */

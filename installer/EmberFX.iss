@@ -27,7 +27,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputBaseFilename=EmberFX-Setup-{#AppVersion}
-; jpackage writes this icon next to the exe on some JDK builds only, so it's optional.
+; The build copies installer\emberfx.ico into the app folder as EmberFX.ico.
 #if FileExists(AddBackslash(SourceDir) + "EmberFX.ico")
 SetupIconFile={#SourceDir}\EmberFX.ico
 #endif
