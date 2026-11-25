@@ -43,7 +43,7 @@ Team modules can add their own tabs after yours.
 | Linear gauge | Segmented bars across or up. Point it at a table (e.g. `/SmartDashboard/Motor Temps`) for one labelled bar per number in it | |
 | Checklist | A check per true/false value in a table (e.g. `/SmartDashboard/Ready`) | |
 | Alerts | Errors, warnings and infos from a WPILib `Alert` group | WPILib Alerts |
-| Swerve | Chassis heading, module angles and speed arrows from a `SwerveDrive` sendable (the layout Elastic uses; the Swerve tile's class comment has the robot code) | `SwerveDrive` |
+| Swerve | Chassis heading, module angles and speed arrows. Reads a struct `SwerveModuleState[]` topic, CTRE's generated `DriveState` table, or a `SwerveDrive` sendable (the layout Elastic uses; the Swerve tile's class comment has the robot code) | `SwerveDrive`, `SwerveModuleState[]` |
 | Match timer | Time left (from a topic such as `SmartDashboard.putNumber("Match Time", DriverStation.getMatchTime())`), turning yellow then red, with mode, alliance, match number and game data from `/FMSInfo` | |
 | Button | Pulse (true for 200 ms) or hold. On a robot `Command`, it runs the command and lights up while it runs | Commands |
 | Toggle | Turns a robot boolean on and off | booleans the robot reads |
@@ -51,16 +51,34 @@ Team modules can add their own tabs after yours.
 | Input | Type a number or text and press Enter or Send | numbers and strings the robot reads |
 | Chooser | Dropdown for a `SendableChooser` (auto selection) | `SendableChooser` |
 | Camera | Live video from CameraServer, or any MJPEG URL such as PhotonVision's. Optional resolution, FPS and quality limits | CameraServer cameras |
-| Field | Robot pose, other objects and paths from a WPILib `Field2d`. Field size is an option, and you can point it at your own field image | `Field2d` |
+| Field | Robot pose, other objects and paths from a WPILib `Field2d`, or a struct `Pose2d`/`Pose2d[]` topic. Field size is an option, and you can point it at your own field image. With a linked robot project it also draws the auto picked in the chooser (see below) | `Field2d`, struct poses |
+| PID tuner | Edit p, i, d, izone and setpoint of a `PIDController`. Enter or leaving a field sends it; a field that differs from the robot is outlined | `PIDController` |
+| Subsystem | The command a subsystem is running, or idle, and its default command | `Subsystem` |
+| Scheduler | The commands the robot is running, each with a cancel button | `Scheduler` |
+| Preferences | Every WPILib `Preferences` key with an editor for its type | `RobotPreferences` |
+| Power distribution | Current per PDP/PDH channel, with voltage and total current; optional red-above warning | `PowerDistribution` |
+| Gyro | Compass dial with the heading | `Gyro` |
+| Encoder | Speed, distance and distance per tick | `Encoder` |
+| Differential / Mecanum drive | Chassis with an arrow per side or wheel for the motor outputs | `DifferentialDrive`, `MecanumDrive` |
+| Accelerometer | X, Y and Z bars, or one bar for a single-axis accelerometer | `3AxisAccelerometer`, `Accelerometer` |
 
 To edit tiles:
 - **Move:** drag a tile. It snaps to the grid set in Settings.
 - **Resize:** drag its edges.
-- **Edit, duplicate, move to another tab, or remove:** right-click it.
+- **Edit, duplicate, copy, move to another tab, or remove:** right-click it.
+- **Paste:** right-click an empty spot. A copied tile is plain text on the clipboard, so you can also paste it into a chat and a teammate can paste it into their dashboard.
 
 Outside edit mode (the pencil, or Ctrl+E) tiles and tabs can't be moved, added or removed, so nothing gets bumped during a match. Buttons, toggles and sliders still work. Tabs are the numbered buttons on the left bar; Ctrl+1 to Ctrl+9 switch between them, and right-clicking one in edit mode renames, moves or deletes it.
 
 Controls only write to the robot after the driver uses them. Until then the topic doesn't exist on the robot, so robot code can check `exists()` and fall back to its own default. Camera tiles stop streaming while their tab is hidden, to save bandwidth.
+
+**Struct values** (`Pose2d`, `SwerveModuleState[]`, `ChassisSpeeds` and any other WPILib or custom struct) are decoded from the schemas the robot publishes. A Text tile shows them as text, e.g. `Pose2d(x=1.20, y=3.40, rot=90.0 deg)`.
+
+**Auto preview.** With a robot project linked, the Field tile draws the auto picked in the auto chooser (the "Auto chooser" option, default `/SmartDashboard/Auto Chooser`). It reads PathPlanner `deploy/pathplanner/autos` and `paths`, and Choreo `deploy/choreo/*.traj`, and flips them for the red alliance (rotated by default, mirrored as an option). While the robot is disabled, a dashed line shows how far the robot is from where the auto starts, so a robot placed in the wrong spot is caught before the match. Edited files are picked up within a second.
+
+**Messages and tab changes from robot code.** Robot code written for Elastic works unchanged, through the same topics ElasticLib uses:
+- `Elastic.sendNotification(...)` pops up a message in the bottom-right corner (`/Elastic/RobotNotifications`). Errors, warnings and infos get their own icon; a display time of 0 keeps it until closed.
+- `Elastic.selectTab("Autonomous")` (or a 0-based index) switches tabs (`/Elastic/SelectedTab`).
 
 ### Finding topics
 
@@ -71,7 +89,9 @@ The Topics panel and the Add tile > Browse dialog both list two sources, with se
   - `Logger.recordOutput` (AdvantageKit)
   - `get*Topic("/full/path")`
 
-  Values the robot reads are marked, and they get a control (toggle or input) instead of a display. Only names written as text in quotes are found, not names built from constants.
+  Values the robot reads are marked, and they get a control (toggle or input) instead of a display. So do tuning values under `/Tuning` (AdvantageKit), `/Tunable` (DogLog) and `/Preferences`. Only names written as text in quotes are found, not names built from constants.
+
+**Menu > Check topics** compares the two: topics the code mentions that the robot doesn't publish (often a stale deploy or a typo), topics the robot publishes that the code never mentions, and topics whose type differs between the code and the robot.
 
 ## Layouts: sharing, and keeping one with the robot code
 
@@ -92,7 +112,7 @@ While connected, the dashboard saves **everything** the robot publishes over Net
 
 - Files: `%USERPROFILE%\.emberfx\logs\frc<team>_<date>_<time>.wpilog`. A new file starts each time the robot connects.
 - A red **REC** label shows the file being written.
-- Open the files in AdvantageScope (File > Open Log). Robot data is under `NT:/`.
+- **Menu > Open latest log** opens the newest file with its usual program (AdvantageScope, if it's installed). In AdvantageScope, robot data is under `NT:/`.
 - Anything that happens while disconnected isn't in these files. Check the Driver Station logs for that.
 
 ## Files
@@ -151,13 +171,17 @@ src/main/java/emberfx/
   config/
     Config                       config.json (schema in its class comment)
     Layouts                      layout files: load from the robot, save to the robot project, merge
+  autos/                         PathPlanner and Choreo auto files from the robot project, for the auto preview
+  structs/                       WPILib struct schemas and decoding (StructRegistry, StructSubscriber, Poses)
   tiles/
     Tile                         base class: title, update(), track() for NT handles
     TileType, TileConfig         what a tile type is; one tile's saved settings
     TileTypes                    the list of tile types + automatic tile picking
-    TextTile ... MatchTimerTile  one class per built-in tile; CanvasTile is the base for drawn ones, TopicGroup reads tables
+    TextTile ... MatchTimerTile  one class per built-in tile; CanvasTile is the base for drawn ones (redrawn
+                                 only when needsRedraw() says something changed), TopicGroup reads tables
   topics/
     LiveTopics                   topics the robot publishes now
+    TopicCheck                   code topics vs live topics: missing, unexpected, wrong type
     ProjectScanner               topic names found in robot code
     Topics, FoundTopic           both merged
   ui/
@@ -167,6 +191,8 @@ src/main/java/emberfx/
     TabPage                      one tab: tiles, drag/resize/snap, drop target, tile menus
     TileDialog                   Add/Edit tile dialog
     TopicList                    searchable, draggable topic list
+    Notifications                pop-up messages from robot code (Elastic-compatible)
+    TopicCheckDialog             Menu > Check topics
     SidePanel, TopicBrowser      the edit-mode Tiles/Topics panel and the Browse dialog, both built on TopicList
     Forms, Style                 shared dialogs; colors and small builders
 src/main/resources/emberfx/ui/

@@ -5,6 +5,7 @@ import emberfx.DashModule;
 import emberfx.ModuleContext;
 import emberfx.NT;
 import emberfx.Setting;
+import emberfx.app.SessionLog;
 import emberfx.config.Config;
 import emberfx.config.Layouts;
 import emberfx.topics.Topics;
@@ -24,7 +25,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 /** The main menu (top of the left bar) and everything it does: settings, robot project, layouts, Driver Station, config files. */
 final class SetupMenu {
@@ -46,6 +49,7 @@ final class SetupMenu {
         menu.getItems().addAll(
             addTile,
             Forms.item("Link robot project...", this::linkProject),
+            Forms.item("Check topics...", TopicCheckDialog::show),
             new SeparatorMenuItem(),
             Forms.item("Load layout from robot...", this::loadLayoutFromRobot),
             Forms.item("Save layout to robot project", this::saveLayoutToProject),
@@ -54,6 +58,7 @@ final class SetupMenu {
             Forms.item("Settings...", this::showSettings),
             Forms.item("Load config...", this::loadConfig),
             Forms.item("Save config as...", this::saveConfigAs),
+            Forms.item("Open latest log", SetupMenu::openLatestLog),
             Forms.item("Open data folder", () -> openFolder(Config.DIR)));
 
         Menu moduleSettings = new Menu("Module settings");
@@ -257,6 +262,26 @@ final class SetupMenu {
         chooser.setTitle(title);
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Dashboard config (*.json)", "*.json"));
         return chooser;
+    }
+
+    /** Open the newest .wpilog with its usual program (AdvantageScope, when it's installed). */
+    private static void openLatestLog() {
+        Path newest = null;
+        try (Stream<Path> files = Files.list(SessionLog.DIR)) {
+            newest = files.filter(p -> p.getFileName().toString().endsWith(".wpilog"))
+                .max(Comparator.comparingLong(p -> p.toFile().lastModified())).orElse(null);
+        } catch (IOException e) { // no logs folder yet: same as no logs
+            LOG.log(System.Logger.Level.DEBUG, "No log folder at " + SessionLog.DIR, e);
+        }
+        if (newest == null) {
+            Forms.info("There are no logs yet. A log starts each time the dashboard connects to a robot.");
+            return;
+        }
+        try {
+            new ProcessBuilder("explorer.exe", newest.toString()).start(); // opens it with its usual program
+        } catch (IOException e) {
+            Forms.error("Couldn't open " + newest + ": " + e.getMessage());
+        }
     }
 
     private static void openFolder(Path dir) {

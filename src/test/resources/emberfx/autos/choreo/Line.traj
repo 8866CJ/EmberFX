@@ -1,0 +1,17 @@
+{
+  "name": "Line",
+  "version": 1,
+  "snapshot": {"waypoints": [], "constraints": [], "targetDt": 0.05},
+  "params": {"waypoints": [], "constraints": [], "targetDt": {"exp": "0.05 s", "val": 0.05}},
+  "trajectory": {
+    "sampleType": "Swerve",
+    "waypoints": [0.0, 2.0],
+    "samples": [
+      {"t": 0.0, "x": 1.0, "y": 2.0, "heading": 0.0, "vx": 0, "vy": 0, "omega": 0, "ax": 0, "ay": 0, "alpha": 0, "fx": [0,0,0,0], "fy": [0,0,0,0]},
+      {"t": 1.0, "x": 2.0, "y": 2.0, "heading": 1.5707963267948966, "vx": 1, "vy": 0, "omega": 0, "ax": 0, "ay": 0, "alpha": 0, "fx": [0,0,0,0], "fy": [0,0,0,0]},
+      {"t": 2.0, "x": 3.0, "y": 2.0, "heading": 3.141592653589793, "vx": 0, "vy": 0, "omega": 0, "ax": 0, "ay": 0, "alpha": 0, "fx": [0,0,0,0], "fy": [0,0,0,0]}
+    ],
+    "splits": [0]
+  },
+  "events": [{"name": "Score", "from": {"target": 1, "targetTimestamp": 1.0, "offset": {"exp": "0 s", "val": 0.0}}, "event": null}]
+}

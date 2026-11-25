@@ -11,6 +11,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /** Type a value and press Enter or Send. Shows the robot's current value under the box. */
 public final class InputTile extends Tile {
     public static final String AUTO = "Same as the robot (number if new)";
@@ -21,7 +24,7 @@ public final class InputTile extends Tile {
     private final GenericSubscriber sub;
     private final TextField field = new TextField();
     private final Label current = new Label();
-    private GenericPublisher pub; // created on first send
+    private final Map<String, LazyPublisher<GenericPublisher>> pubs = new HashMap<>(); // by value type, created on first send
     private String error;         // shown instead of the robot's value until the next good send
 
     public InputTile(TileConfig config) {
@@ -48,7 +51,7 @@ public final class InputTile extends Tile {
     private void send() {
         String type = valueType(), text = field.getText().trim();
         try {
-            if (pub == null) pub = track(topic.genericPublish(type));
+            GenericPublisher pub = pubs.computeIfAbsent(type, t -> track(new LazyPublisher<>(() -> topic.genericPublish(t)))).get();
             switch (type) {
                 case "string" -> pub.setString(text);
                 case "int" -> pub.setInteger(Long.parseLong(text));

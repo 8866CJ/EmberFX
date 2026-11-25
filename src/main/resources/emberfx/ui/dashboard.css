@@ -605,3 +605,37 @@
 .dialog-pane > .content.label {
     -fx-text-fill: #e2e8f0;
 }
+
+/* ---- Robot notifications (bottom right) ---- */
+
+.notification {
+    -fx-background-color: #0f172a;
+    -fx-background-radius: 8;
+    -fx-border-color: #334155;
+    -fx-border-radius: 8;
+    -fx-padding: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 18, 0, 0, 6);
+}
+
+.notification-icon-error {
+    -fx-stroke: #dc2626;
+}
+
+.notification-icon-warning {
+    -fx-stroke: #d97706;
+}
+
+.notification-icon-info {
+    -fx-stroke: #0284c7;
+}
+
+.notification-close {
+    -fx-background-color: transparent;
+    -fx-text-fill: #64748b;
+    -fx-padding: 0 4;
+    -fx-cursor: hand;
+}
+
+.notification-close:hover {
+    -fx-text-fill: #f8fafc;
+}

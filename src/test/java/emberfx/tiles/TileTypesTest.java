@@ -25,6 +25,13 @@ class TileTypesTest {
     }
 
     @Test
+    void tuningValuesGetAControl() {
+        assertEquals("input", TileTypes.suggest(new FoundTopic("/Tuning/Drive/kP", "double", "robot", false)).id());
+        assertEquals("toggle", TileTypes.suggest(new FoundTopic("/Tunable/UseVision", "boolean", "robot", false)).id());
+        assertEquals("text", TileTypes.suggest(new FoundTopic("/SmartDashboard/Tuning", "double", "robot", false)).id());
+    }
+
+    @Test
     void sendablesGetTheirOwnTile() {
         assertEquals("chooser", suggest("String Chooser", false));
         assertEquals("button", suggest("Command", false));

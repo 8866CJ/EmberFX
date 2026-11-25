@@ -3,6 +3,10 @@ package emberfx.ui;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import edu.wpi.first.networktables.NetworkTablesJNI;
+import edu.wpi.first.networktables.PubSubOption;
+import edu.wpi.first.networktables.StringSubscriber;
+import edu.wpi.first.networktables.TimestampedString;
 import emberfx.DashModule;
 import emberfx.ModuleContext;
 import emberfx.NT;
@@ -10,6 +14,7 @@ import emberfx.config.Config;
 import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
@@ -51,11 +56,16 @@ public final class DashboardView {
         Objects.requireNonNull(DashboardView.class.getResource("dashboard.css"), "dashboard.css is missing").toExternalForm();
     private static final double DISCONNECTED_OPACITY = 0.6; // stale values are dimmed while disconnected
     private static final double SIDE_PANEL_SHARE = 0.24;    // starting width of the side panel, as a share of the window
+    /** ElasticLib's Elastic.selectTab: a tab name, or a 0-based index as text. */
+    static final String SELECTED_TAB_TOPIC = "/Elastic/SelectedTab";
+    private static final long REQUEST_MAX_AGE_MICROS = 3_000_000;
 
     /** A tab added by a team module. It can't be renamed, deleted or hold tiles. */
     private record ModuleTab(String name, Parent content, Runnable update) {}
 
-    private final BorderPane root = new BorderPane();
+    private final BorderPane main = new BorderPane();
+    private final Notifications notifications = new Notifications();
+    private final StackPane root = new StackPane(main, notifications);
     private final VBox rail = Style.styled(new VBox(), "nav-rail");
     private final StackPane pages = new StackPane();
     private final SplitPane split = new SplitPane();
@@ -66,6 +76,12 @@ public final class DashboardView {
     private final HeaderBar header = new HeaderBar(moduleHeaderItems);
     private final SetupMenu setupMenu;
     private final PauseTransition topicRefresh = new PauseTransition(Duration.seconds(1));
+    // Elastic's robot-side API (ElasticLib), so robot code written for Elastic works here too.
+    // sendAll + keepDuplicates: every notification arrives, even two identical ones in a row.
+    private final StringSubscriber robotNotifications = NT.instance().getStringTopic(Notifications.TOPIC)
+        .subscribe("", PubSubOption.sendAll(true), PubSubOption.keepDuplicates(true));
+    private final StringSubscriber robotSelectedTab = NT.instance().getStringTopic(SELECTED_TAB_TOPIC)
+        .subscribe("", PubSubOption.keepDuplicates(true));
 
     private final List<TabPage> tabs = new ArrayList<>();
     private final List<ModuleTab> moduleTabs = new ArrayList<>();
@@ -83,8 +99,9 @@ public final class DashboardView {
         setupMenu = new SetupMenu(this, modules);
 
         startModules(modules, problems);
-        root.setLeft(rail);
-        root.setCenter(new BorderPane(split, header, null, null, null));
+        main.setLeft(rail);
+        main.setCenter(new BorderPane(split, header, null, null, null));
+        StackPane.setAlignment(notifications, Pos.BOTTOM_RIGHT);
         SplitPane.setResizableWithParent(sidePanel, false); // window resizes go to the page, not the panel
         topicRefresh.setOnFinished(e -> sidePanel.refresh());
         refreshTabs();
@@ -280,11 +297,49 @@ public final class DashboardView {
             @Override
             public void handle(long now) {
                 header.update();
+                readRobotRequests();
                 if (selected instanceof TabPage page) page.update();
                 if (selected instanceof ModuleTab tab && tab.update() != null) runModuleUpdate(tab.update());
                 moduleHeaderUpdates.forEach(DashboardView.this::runModuleUpdate);
             }
         }.start();
+    }
+
+    /** Notifications and tab changes the robot code asked for since the last frame. */
+    private void readRobotRequests() {
+        // On connect, NetworkTables hands over the last value the robot ever sent. Like Elastic, skip
+        // anything older than a few seconds, so a reconnect doesn't replay an old error or yank the tab.
+        long oldest = NetworkTablesJNI.now() - REQUEST_MAX_AGE_MICROS;
+        for (TimestampedString v : robotNotifications.readQueue()) {
+            if (v.timestamp >= oldest && !v.value.isBlank()) notifications.showJson(v.value);
+        }
+        TimestampedString[] tabRequests = robotSelectedTab.readQueue();
+        if (tabRequests.length > 0 && tabRequests[tabRequests.length - 1].timestamp >= oldest) {
+            selectTab(tabRequests[tabRequests.length - 1].value);
+        }
+    }
+
+    /** Show the tab with this name (any case), or at this 0-based index. Unknown names are ignored. */
+    private void selectTab(String request) {
+        List<Object> all = new ArrayList<>(tabs);
+        all.addAll(moduleTabs);
+        int index = tabIndex(request, all.stream().map(t -> t instanceof TabPage p ? p.name() : ((ModuleTab) t).name()).toList());
+        if (index >= 0 && all.get(index) != selected) {
+            selected = all.get(index);
+            refreshTabs();
+        }
+    }
+
+    /** Index of the tab a request names: a name match first, then a number. -1 when nothing matches. */
+    static int tabIndex(String request, List<String> names) {
+        String r = request.trim();
+        for (int i = 0; i < names.size(); i++) if (names.get(i).equalsIgnoreCase(r)) return i;
+        try {
+            int i = Integer.parseInt(r);
+            return i >= 0 && i < names.size() ? i : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     /** Run a module's update; one that throws is reported once and skipped from then on. */

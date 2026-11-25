@@ -7,6 +7,8 @@ import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.NetworkTableEvent;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StringPublisher;
+import emberfx.structs.StructRegistry;
+import emberfx.structs.StructSubscriber;
 
 import java.util.function.Consumer;
 
@@ -17,6 +19,11 @@ import java.util.function.Consumer;
 public final class NT {
     private static final NetworkTableInstance INSTANCE = NetworkTableInstance.getDefault();
     private static final String CLIENT_NAME = "EmberFX";
+    private static final StructRegistry STRUCTS = new StructRegistry();
+
+    static {
+        STRUCTS.listen(INSTANCE); // struct schemas, so struct topics (Pose2d, SwerveModuleState[], ...) can be decoded
+    }
 
     private NT() {}
 
@@ -43,6 +50,16 @@ public final class NT {
     /** Called with true on connect and false on disconnect, and right away if already connected. */
     public static void onConnectionChange(Consumer<Boolean> listener) {
         INSTANCE.addConnectionListener(true, event -> listener.accept(event.is(NetworkTableEvent.Kind.kConnected)));
+    }
+
+    /** Struct schemas the robot has published, for decoding struct topics. */
+    public static StructRegistry structs() {
+        return STRUCTS;
+    }
+
+    /** Decoded values of a struct topic ("struct:Pose2d", "struct:SwerveModuleState[]", ...). */
+    public static StructSubscriber subStruct(String topic) {
+        return new StructSubscriber(INSTANCE, STRUCTS, topic);
     }
 
     public static DoubleSubscriber subDouble(String topic, double defaultValue) {

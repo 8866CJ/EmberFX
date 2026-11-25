@@ -24,7 +24,9 @@ public final class ButtonTile extends Tile {
     private final Button button = new Button();
     private final StringSubscriber sendableType;
     private final BooleanSubscriber running;
-    private BooleanPublisher pub; // created on first press, so nothing is sent until the driver uses it
+    // Created on first press, so nothing is sent until the driver uses it.
+    private final LazyPublisher<BooleanPublisher> pub =
+        track(new LazyPublisher<>(() -> NT.pubBool(isCommand() ? config.topic() + "/running" : config.topic())));
 
     public ButtonTile(TileConfig config) {
         super(config);
@@ -51,8 +53,7 @@ public final class ButtonTile extends Tile {
     private boolean isCommand() { return "Command".equals(sendableType.get()); }
 
     private void send(boolean value) {
-        if (pub == null) pub = track(NT.pubBool(isCommand() ? config.topic() + "/running" : config.topic()));
-        pub.set(value);
+        pub.get().set(value);
     }
 
     @Override

@@ -20,7 +20,8 @@ public final class ChooserTile extends Tile {
     private final Label active = new Label();
     private final StringArraySubscriber options;
     private final StringSubscriber activeSub;
-    private StringPublisher selected; // created on first pick
+    private final LazyPublisher<StringPublisher> selected =
+        track(new LazyPublisher<>(() -> NT.instance().getStringTopic(config.topic() + "/selected").publish()));
     private String[] shown = new String[0];
     private boolean following;
 
@@ -31,8 +32,7 @@ public final class ChooserTile extends Tile {
         box.setMaxWidth(Double.MAX_VALUE);
         box.valueProperty().addListener((obs, o, v) -> {
             if (following || v == null) return;
-            if (selected == null) selected = track(NT.instance().getStringTopic(config.topic() + "/selected").publish());
-            selected.set(v);
+            selected.get().set(v);
         });
         active.getStyleClass().add("muted");
         setCenter(new VBox(6, box, active));

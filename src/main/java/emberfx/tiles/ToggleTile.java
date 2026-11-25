@@ -13,7 +13,7 @@ public final class ToggleTile extends Tile {
     private final ToggleButton toggle = new ToggleButton();
     private final Label thumb = new Label();
     private final BooleanSubscriber sub;
-    private BooleanPublisher pub; // created on first click
+    private final LazyPublisher<BooleanPublisher> pub = track(new LazyPublisher<>(() -> NT.pubBool(config.topic())));
 
     public ToggleTile(TileConfig config) {
         super(config);
@@ -23,8 +23,7 @@ public final class ToggleTile extends Tile {
         toggle.setGraphic(thumb);
         toggle.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         toggle.setOnAction(e -> {
-            if (pub == null) pub = track(NT.pubBool(config.topic()));
-            pub.set(!sub.get());
+            pub.get().set(!sub.get());
         });
         setCenter(toggle);
     }

@@ -54,6 +54,13 @@ final class TopicGroup {
 
     List<Entry> entries() { return entries; }
 
+    /** Changes whenever any value in the group changes (sum of last-change times). */
+    long changeStamp() {
+        long sum = entries.size();
+        for (Entry e : entries) sum += e.sub().getLastChange();
+        return sum;
+    }
+
     /** The entry's value as a number, or NaN when it isn't one (or hasn't arrived yet). */
     static double number(Entry e) {
         NetworkTableValue v = e.sub().get();

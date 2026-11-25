@@ -1,5 +1,6 @@
 package emberfx.tiles;
 
+import edu.wpi.first.networktables.Subscriber;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -50,6 +51,16 @@ public abstract class Tile extends BorderPane {
 
     /** Small monospace text at the right of the title, e.g. a graph's latest value. */
     protected void setHeaderValue(String text) { headerValue.setText(text); }
+
+    /**
+     * A number that changes whenever any of these subscribers gets a new value: the sum of their
+     * last-change times. Compare it with the previous frame's to skip work when nothing changed.
+     */
+    protected static long changeStamp(Subscriber... subs) {
+        long sum = 0;
+        for (Subscriber s : subs) sum += s.getLastChange();
+        return sum;
+    }
 
     /** Remember a subscriber or publisher so it's closed with the tile. Returns it for chaining. */
     protected <T extends AutoCloseable> T track(T handle) {

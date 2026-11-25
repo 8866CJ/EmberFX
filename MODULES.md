@@ -1,6 +1,6 @@
 # Extending the dashboard
 
-Most teams never need code. Tabs and the seventeen built-in tiles cover displays, gauges, checklists, alerts, buttons, toggles, sliders, inputs, graphs, auto choosers, the match timer, swerve, cameras and the field map. When you want something they can't do, write a **team module**: a small jar dropped into `%USERPROFILE%\.emberfx\modules\`. The dashboard itself doesn't need to be recompiled.
+Most teams never need code. Tabs and the 27 built-in tiles cover displays, gauges, checklists, alerts, buttons, toggles, sliders, inputs, graphs, auto choosers, the match timer, swerve and drive views, WPILib sendables (PID, subsystems, scheduler, preferences, power distribution, gyro, encoder, accelerometer), cameras and the field map. For a tile that draws itself, extend `CanvasTile`; `NT.subStruct(topic)` decodes struct topics. When you want something they can't do, write a **team module**: a small jar dropped into `%USERPROFILE%\.emberfx\modules\`. The dashboard itself doesn't need to be recompiled.
 
 A module can add:
 

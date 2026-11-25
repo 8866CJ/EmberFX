@@ -1,6 +1,7 @@
 package emberfx.ui;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import emberfx.config.Config;
@@ -18,9 +19,12 @@ import javafx.scene.control.ComboBoxBase;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextInputControl;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
@@ -32,6 +36,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +47,7 @@ import java.util.List;
  */
 public final class TabPage {
     private static final double RESIZE_EDGE = 10, MIN_W = 120, MIN_H = 80;
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final ObjectNode json;
     private final DashboardView window;
@@ -61,7 +67,10 @@ public final class TabPage {
         canvas.minHeightProperty().bind(Bindings.createDoubleBinding(() -> scroll.getViewportBounds().getHeight(), scroll.viewportBoundsProperty()));
         canvas.setOnContextMenuRequested(e -> {
             if (e.getTarget() != canvas || Config.locked()) return;
-            new ContextMenu(Forms.item("Add tile here...", () -> addNew(null, e.getX(), e.getY())))
+            ObjectNode copied = copiedTile();
+            MenuItem paste = Forms.item("Paste tile here", () -> paste(copied, e.getX(), e.getY()));
+            paste.setDisable(copied == null);
+            new ContextMenu(Forms.item("Add tile here...", () -> addNew(null, e.getX(), e.getY())), paste)
                 .show(canvas, e.getScreenX(), e.getScreenY());
         });
 
@@ -179,6 +188,39 @@ public final class TabPage {
         Config.save();
     }
 
+    /** Put a tile's settings on the clipboard as JSON, so it can be pasted on any tab, or sent to another computer. */
+    private static void copy(Tile tile) {
+        ClipboardContent content = new ClipboardContent();
+        content.putString(tile.config().json().toString());
+        Clipboard.getSystemClipboard().setContent(content);
+    }
+
+    /** The tile on the clipboard, or null when the clipboard holds something else. */
+    private static ObjectNode copiedTile() {
+        String text = Clipboard.getSystemClipboard().getString();
+        return text == null ? null : tileFromJson(text);
+    }
+
+    /** A tile's settings from copied text: a JSON object with at least a type and a topic. Null otherwise. */
+    static ObjectNode tileFromJson(String text) {
+        try {
+            JsonNode n = JSON.readTree(text);
+            return n instanceof ObjectNode o && o.path("type").isTextual() && o.path("topic").isTextual() ? o : null;
+        } catch (IOException e) { // not JSON: the clipboard holds ordinary text
+            return null;
+        }
+    }
+
+    private void paste(ObjectNode copied, double x, double y) {
+        ObjectNode t = copied.deepCopy();
+        tilesJson().add(t);
+        TileType type = TileTypes.find(t.path("type").asText());
+        double w = t.path("w").asDouble(type == null ? MIN_W : type.width()), h = t.path("h").asDouble(type == null ? MIN_H : type.height());
+        t.put("x", snap(x)).put("y", snap(y)).put("w", w).put("h", h);
+        show(t);
+        Config.save();
+    }
+
     private void moveTo(Tile tile, TabPage other) {
         ObjectNode t = tile.config().json();
         removeJson(t);
@@ -229,6 +271,7 @@ public final class TabPage {
         return new ContextMenu(
             Forms.item("Edit...", () -> edit(tile)),
             Forms.item("Duplicate", () -> duplicate(tile)),
+            Forms.item("Copy", () -> copy(tile)),
             move,
             Forms.item("Remove", () -> remove(tile)));
     }

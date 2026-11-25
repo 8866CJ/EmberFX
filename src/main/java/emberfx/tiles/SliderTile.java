@@ -13,7 +13,7 @@ public final class SliderTile extends Tile {
     private final Slider slider;
     private final Label value = Style.value("--", 18);
     private final DoubleSubscriber sub;
-    private DoublePublisher pub; // created on first drag
+    private final LazyPublisher<DoublePublisher> pub = track(new LazyPublisher<>(() -> NT.pubDouble(config.topic())));
     private boolean following;   // true while the slider is being moved to match the robot, so it doesn't send
 
     public SliderTile(TileConfig config) {
@@ -30,8 +30,7 @@ public final class SliderTile extends Tile {
         }
         slider.valueProperty().addListener((obs, o, v) -> {
             if (following) return;
-            if (pub == null) pub = track(NT.pubDouble(config.topic()));
-            pub.set(v.doubleValue());
+            pub.get().set(v.doubleValue());
         });
         setCenter(new VBox(6, value, slider));
     }

@@ -26,6 +26,7 @@ public final class LinearGaugeTile extends CanvasTile {
     private static final int SCALE_LABELS = 5;
 
     private final TopicGroup group;
+    private long stamp = -1;
 
     public LinearGaugeTile(TileConfig config) {
         super(config);
@@ -38,6 +39,14 @@ public final class LinearGaugeTile extends CanvasTile {
         List<TopicGroup.Entry> e = group.entries();
         setHeaderValue(e.size() == 1 ? TextTile.number(TopicGroup.number(e.get(0)), config.option("format")) : "");
         super.update();
+    }
+
+    @Override
+    protected boolean needsRedraw() {
+        long now = group.changeStamp();
+        boolean changed = now != stamp;
+        stamp = now;
+        return changed;
     }
 
     @Override

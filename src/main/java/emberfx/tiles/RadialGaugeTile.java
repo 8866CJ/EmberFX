@@ -22,10 +22,19 @@ public final class RadialGaugeTile extends CanvasTile {
     private static final double STEP = 1.5, MAJOR = 67.5; // degrees between ticks, and between the 5 labelled ticks
 
     private final DoubleSubscriber sub;
+    private long stamp = -1;
 
     public RadialGaugeTile(TileConfig config) {
         super(config);
         sub = track(NT.subDouble(config.topic(), 0.0));
+    }
+
+    @Override
+    protected boolean needsRedraw() {
+        long now = changeStamp(sub);
+        boolean changed = now != stamp;
+        stamp = now;
+        return changed;
     }
 
     @Override

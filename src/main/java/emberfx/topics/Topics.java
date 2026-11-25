@@ -11,6 +11,8 @@ import java.util.TreeMap;
 
 /** Every topic the user can pick: live ones from the robot plus ones found in the linked robot project. */
 public final class Topics {
+    private static final System.Logger LOG = System.getLogger(Topics.class.getName());
+
     private Topics() {}
 
     /** One entry per path, sorted. Live data wins for the type; the code tells whether the robot reads it. */
@@ -32,6 +34,7 @@ public final class Topics {
         try {
             return ProjectScanner.scan(Path.of(project));
         } catch (IOException | RuntimeException e) {
+            LOG.log(System.Logger.Level.WARNING, "Couldn't scan the robot project at " + project, e);
             return List.of();
         }
     }

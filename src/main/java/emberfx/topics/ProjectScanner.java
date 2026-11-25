@@ -56,7 +56,7 @@ public final class ProjectScanner {
         Matcher m = SMARTDASHBOARD.matcher(text);
         while (m.find()) {
             boolean reads = !m.group(1).equals("put");
-            add(found, "/SmartDashboard/" + m.group(3), smartDashboardType(m.group(2)), where(fileName, text, m.start()), reads);
+            add(found, "/SmartDashboard/" + m.group(3).replaceFirst("^/+", ""), smartDashboardType(m.group(2)), where(fileName, text, m.start()), reads);
         }
         m = ADVANTAGEKIT.matcher(text);
         while (m.find()) {
