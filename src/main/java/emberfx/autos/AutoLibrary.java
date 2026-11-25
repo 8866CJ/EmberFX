@@ -40,6 +40,8 @@ public final class AutoLibrary {
     private static final System.Logger LOG = System.getLogger(AutoLibrary.class.getName());
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final double SPACING = 0.07;
+    private static final Map<Path, AutoLibrary> SHARED = new HashMap<>();
+    private static long lastSharedRefresh;
 
     private record Cached(long mtime, JsonNode json) {}
     private record Source(Path file, boolean choreo) {}
@@ -49,6 +51,21 @@ public final class AutoLibrary {
     private final Map<Path, Cached> files = new HashMap<>();
     private final Map<String, Source> sources = new LinkedHashMap<>();
     private final Map<String, Entry> previews = new HashMap<>();
+
+    /** The library for a robot project folder, shared by every tile; null when the folder is blank or missing. */
+    public static synchronized AutoLibrary shared(String project) {
+        if (project == null || project.isEmpty()) return null;
+        Path dir = Path.of(project);
+        return java.nio.file.Files.isDirectory(dir) ? SHARED.computeIfAbsent(dir, AutoLibrary::new) : null;
+    }
+
+    /** Like {@link #refresh()}, but at most once a second across all callers. */
+    public static synchronized void refreshShared(AutoLibrary library) {
+        long now = System.currentTimeMillis();
+        if (now - lastSharedRefresh < 1000) return;
+        lastSharedRefresh = now;
+        library.refresh();
+    }
 
     public AutoLibrary(Path robotProject) {
         Path deploy = robotProject.resolve("src").resolve("main").resolve("deploy");

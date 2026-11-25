@@ -21,8 +21,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -49,8 +47,6 @@ public final class FieldTile extends CanvasTile {
         ROBOT = Color.web(Style.RED), OBJECT = Color.web(Style.YELLOW), PATH = Color.WHITE,
         AUTO = Color.web("#f59e0b"), AUTO_FAINT = Color.web("#f59e0b", 0.35), MARKER_TEXT = Color.web("#fde68a");
     private static final Font MARKER_FONT = Font.font(MONO, 10), LABEL_FONT = Font.font(SANS, 12);
-    private static final Map<Path, AutoLibrary> AUTO_LIBRARIES = new LinkedHashMap<>(); // shared by every field tile
-    private static long lastLibraryRefresh;
 
     /** One thing on the field: its last-change time and its poses as x, y, degrees triples. */
     private interface FieldObject {
@@ -146,13 +142,13 @@ public final class FieldTile extends CanvasTile {
 
     /** Pick up a new auto choice, alliance or edited auto file. Cheap: the library only re-reads changed files. */
     private void refreshAuto() {
-        AutoLibrary library = library();
+        AutoLibrary library = AutoLibrary.shared(Config.robotProject());
         if (library == null || !config.optionBool("showAuto")) {
             auto = null;
             autoKey = "";
             return;
         }
-        refreshLibrary(library);
+        AutoLibrary.refreshShared(library);
         String choice = autoChoice.get().trim();
         boolean onRed = red.get();
         AutoPreview base = library.preview(choice).orElse(null); // the same object until one of its files changes
@@ -161,23 +157,6 @@ public final class FieldTile extends CanvasTile {
         autoKey = key;
         FieldSymmetry symmetry = "Mirrored".equals(config.option("symmetry")) ? FieldSymmetry.MIRRORED : FieldSymmetry.ROTATIONAL;
         auto = base == null ? null : onRed ? base.flipped(symmetry, length(), width()) : base;
-    }
-
-    /** Re-read changed auto files, at most once a second for all field tiles together. */
-    private static void refreshLibrary(AutoLibrary library) {
-        long now = System.currentTimeMillis();
-        if (now - lastLibraryRefresh < RESCAN_MS) return;
-        lastLibraryRefresh = now;
-        library.refresh();
-    }
-
-    /** The linked robot project's autos, shared by all field tiles; null when no project is linked. */
-    private static AutoLibrary library() {
-        String project = Config.robotProject();
-        if (project.isEmpty()) return null;
-        Path dir = Path.of(project);
-        if (!Files.isDirectory(dir)) return null;
-        return AUTO_LIBRARIES.computeIfAbsent(dir, AutoLibrary::new);
     }
 
     @Override

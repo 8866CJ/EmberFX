@@ -5,6 +5,7 @@ import edu.wpi.first.networktables.GenericSubscriber;
 import edu.wpi.first.networktables.NetworkTableValue;
 import edu.wpi.first.networktables.Topic;
 import emberfx.NT;
+import emberfx.ui.Style;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -48,9 +49,8 @@ public final class PreferencesTile extends Tile {
         ColumnConstraints label = new ColumnConstraints(), editor = new ColumnConstraints();
         editor.setHgrow(Priority.ALWAYS);
         grid.getColumnConstraints().addAll(label, editor);
-        ScrollPane scroll = new ScrollPane(grid);
+        ScrollPane scroll = Style.styled(new ScrollPane(grid), "plain-scroll");
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         setCenter(scroll);
     }
 

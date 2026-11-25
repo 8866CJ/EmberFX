@@ -42,6 +42,7 @@ Team modules can add their own tabs after yours.
 | Radial gauge | A dial from min to max with the value in the middle; optional red-above warning | |
 | Linear gauge | Segmented bars across or up. Point it at a table (e.g. `/SmartDashboard/Motor Temps`) for one labelled bar per number in it | |
 | Checklist | A check per true/false value in a table (e.g. `/SmartDashboard/Ready`) | |
+| Pre-match check | READY, CHECK or NOT READY from the battery, WPILib Alerts, DogLog faults, E-stop, the chosen auto (and whether its file exists), whether the robot is at the auto's start, a checklist table and Limelight heartbeats. Checks the robot has no data for are hidden. Read-only | |
 | Alerts | Errors, warnings and infos from a WPILib `Alert` group | WPILib Alerts |
 | Swerve | Chassis heading, module angles and speed arrows. Reads a struct `SwerveModuleState[]` topic, CTRE's generated `DriveState` table, or a `SwerveDrive` sendable (the layout Elastic uses; the Swerve tile's class comment has the robot code) | `SwerveDrive`, `SwerveModuleState[]` |
 | Match timer | Time left (from a topic such as `SmartDashboard.putNumber("Match Time", DriverStation.getMatchTime())`), turning yellow then red, with mode, alliance, match number and game data from `/FMSInfo` | |

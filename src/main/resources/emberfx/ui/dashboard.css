@@ -639,3 +639,39 @@
 .notification-close:hover {
     -fx-text-fill: #f8fafc;
 }
+
+/* A scroll area inside a tile: no frame, the card shows through. */
+.plain-scroll,
+.plain-scroll > .viewport {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ---- Pre-match check tile: the READY / CHECK / NOT READY verdict ---- */
+
+.verdict {
+    -fx-padding: 8 16;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+}
+
+.verdict-ready {
+    -fx-background-color: rgba(34, 197, 94, 0.15);
+    -fx-border-color: rgba(34, 197, 94, 0.4);
+    -fx-text-fill: #86efac;
+}
+
+.verdict-check {
+    -fx-background-color: rgba(245, 158, 11, 0.15);
+    -fx-border-color: rgba(245, 158, 11, 0.4);
+    -fx-text-fill: #fcd34d;
+}
+
+.verdict-notready {
+    -fx-background-color: rgba(220, 38, 38, 0.15);
+    -fx-border-color: rgba(239, 68, 68, 0.4);
+    -fx-text-fill: #fca5a5;
+}
