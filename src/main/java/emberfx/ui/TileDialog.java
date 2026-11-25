@@ -59,11 +59,7 @@ public final class TileDialog {
         title.textProperty().addListener((obs, o, n) -> titleChosen = true);
 
         Button browse = new Button("Browse...");
-        browse.setOnAction(e -> TopicBrowser.pick().ifPresent(t -> {
-            topic.setText(t.path());
-            if (!titleChosen) { title.setText(t.name()); titleChosen = false; }
-            if (!typeChosen) { type.setValue(TileTypes.suggest(t)); typeChosen = false; }
-        }));
+        browse.setOnAction(e -> pickTopic());
         HBox.setHgrow(topic, Priority.ALWAYS);
         topic.setPromptText("/SmartDashboard/MyValue");
         topic.setPrefColumnCount(28);
@@ -81,7 +77,8 @@ public final class TileDialog {
         d.setHeaderText(null);
         d.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         d.getDialogPane().setContent(new VBox(14, main, options));
-        if (isNew) browse.fire(); // most tiles start from a topic, so open the browser right away
+        // Most tiles start from a topic, so a new tile opens the browser first. Cancelling it cancels the tile.
+        if (isNew && !pickTopic()) return false;
 
         while (true) {
             if (d.showAndWait().filter(b -> b == ButtonType.OK).isEmpty()) return false;
@@ -91,6 +88,16 @@ public final class TileDialog {
         }
         save();
         return true;
+    }
+
+    /** Open the topic browser and fill in the picked topic. Returns false when the user cancelled it. */
+    private boolean pickTopic() {
+        return TopicBrowser.pick().map(t -> {
+            topic.setText(t.path());
+            if (!titleChosen) { title.setText(t.name()); titleChosen = false; }
+            if (!typeChosen) { type.setValue(TileTypes.suggest(t)); typeChosen = false; }
+            return true;
+        }).orElse(false);
     }
 
     /** What's wrong with the form, or null if it can be saved. */
