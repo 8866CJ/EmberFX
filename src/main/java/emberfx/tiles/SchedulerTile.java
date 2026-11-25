@@ -31,9 +31,10 @@ public final class SchedulerTile extends Tile {
     private final GenericSubscriber ids;
     private final Topic cancelTopic;
     private final VBox rows = new VBox(4);
-    private GenericPublisher cancel; // created on first cancel
+    private final LazyPublisher<GenericPublisher> cancel; // created on first cancel, dropped on disconnect
     private String[] shownNames;
     private long[] shownIds;
+    private boolean shownExists;
     private long stamp = -1;
 
     public SchedulerTile(TileConfig config) {
@@ -41,6 +42,8 @@ public final class SchedulerTile extends Tile {
         names = track(NT.instance().getStringArrayTopic(config.topic() + "/Names").subscribe(new String[0]));
         ids = track(NT.instance().getTopic(config.topic() + "/Ids").genericSubscribe());
         cancelTopic = NT.instance().getTopic(config.topic() + "/Cancel");
+        cancel = track(new LazyPublisher<>(() -> cancelTopic.genericPublish(
+            cancelTopic.getTypeString().equals("double[]") ? "double[]" : "int[]")));
         setCenter(rows);
     }
 
@@ -61,12 +64,15 @@ public final class SchedulerTile extends Tile {
         stamp = now;
         String[] n = names.get();
         long[] id = ids(ids.get());
-        if (Arrays.equals(n, shownNames) && Arrays.equals(id, shownIds)) return;
+        if (Arrays.equals(n, shownNames) && Arrays.equals(id, shownIds) && names.exists() == shownExists) return;
+        shownExists = names.exists();
         shownNames = n;
         shownIds = id;
         rows.getChildren().clear();
         for (int i = 0; i < n.length; i++) rows.getChildren().add(row(n[i], i < id.length ? id[i] : null));
-        if (n.length == 0) rows.getChildren().add(Style.styled(new Label("No commands running"), "muted"));
+        if (n.length == 0) {
+            rows.getChildren().add(Style.styled(new Label(names.exists() ? "No commands running" : "No scheduler at this topic yet"), "muted"));
+        }
         setHeaderValue(n.length == 0 ? "" : String.valueOf(n.length));
     }
 
@@ -88,9 +94,7 @@ public final class SchedulerTile extends Tile {
     }
 
     private void cancel(long id) {
-        boolean doubles = cancelTopic.getTypeString().equals("double[]");
-        if (cancel == null) cancel = track(cancelTopic.genericPublish(doubles ? "double[]" : "int[]"));
-        if (doubles) cancel.setDoubleArray(new double[] {id});
-        else cancel.setIntegerArray(new long[] {id});
+        if (cancelTopic.getTypeString().equals("double[]")) cancel.get().setDoubleArray(new double[] {id});
+        else cancel.get().setIntegerArray(new long[] {id});
     }
 }

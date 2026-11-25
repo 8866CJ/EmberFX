@@ -63,6 +63,7 @@ public final class TextTile extends Tile {
     }
 
     public static String number(double d, String format) {
+        if (Double.isNaN(d)) return "--"; // no value yet, or not a number
         try {
             return String.format(format, d);
         } catch (IllegalFormatException e) { // e.g. "%d" typed for a double

@@ -38,7 +38,9 @@ import javafx.scene.paint.ImagePattern;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * One user tab: a canvas of tiles that can be dragged (snapping to the grid), resized from their
@@ -48,12 +50,14 @@ import java.util.List;
 public final class TabPage {
     private static final double RESIZE_EDGE = 10, MIN_W = 120, MIN_H = 80;
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final double FAILED_OPACITY = 0.35;
 
     private final ObjectNode json;
     private final DashboardView window;
     private final Pane canvas = new Pane();
     private final StackPane root;
     private final List<Tile> tiles = new ArrayList<>();
+    private final Set<Tile> failed = new HashSet<>(); // tiles whose update() threw; skipped from then on
     private final Label hint = new Label();
 
     TabPage(ObjectNode json, DashboardView window) {
@@ -110,11 +114,13 @@ public final class TabPage {
 
     /** Refresh every tile. A tile that throws is stopped and reported once, the rest keep going. */
     void update() {
-        for (Tile t : List.copyOf(tiles)) {
+        for (Tile t : tiles) {
+            if (failed.contains(t)) continue;
             try {
                 t.update();
             } catch (RuntimeException e) {
-                tiles.remove(t);
+                failed.add(t);
+                t.setOpacity(FAILED_OPACITY); // so its frozen values don't look live
                 window.warn("The \"" + t.config().title() + "\" tile stopped updating: " + e);
             }
         }
@@ -225,6 +231,8 @@ public final class TabPage {
         ObjectNode t = tile.config().json();
         removeJson(t);
         hide(tile);
+        double[] spot = other.freeSpot(tile.config().width(), tile.config().height());
+        t.put("x", spot[0]).put("y", spot[1]);
         other.tilesJson().add(t);
         other.show(t);
         Config.save();
@@ -256,6 +264,7 @@ public final class TabPage {
     private void hide(Tile tile) {
         tile.close();
         tiles.remove(tile);
+        failed.remove(tile);
         canvas.getChildren().remove(tile);
     }
 
@@ -284,7 +293,7 @@ public final class TabPage {
     }
 
     /** First spot, scanning rows from the top left, where a w x h tile overlaps nothing. */
-    private double[] freeSpot(double w, double h) {
+    double[] freeSpot(double w, double h) {
         double step = Math.max(10, Config.gridSize());
         double maxX = Math.max(canvas.getWidth(), 1000) - w;
         for (double y = 0; y < 5000; y += step) {

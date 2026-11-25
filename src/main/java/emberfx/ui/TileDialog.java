@@ -19,6 +19,7 @@ import javafx.scene.layout.VBox;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -26,6 +27,9 @@ import java.util.function.Supplier;
  * Picking a topic fills in a matching tile type and title, unless you already chose them.
  */
 public final class TileDialog {
+    /** Tile types that work without a topic: the readiness check finds its own, Preferences defaults to /Preferences, a camera can use a URL. */
+    private static final Set<String> TOPIC_OPTIONAL = Set.of("readiness", "preferences", "camera");
+
     private final ObjectNode json;
     private final TextField topic = new TextField();
     private final TextField title = new TextField();
@@ -78,7 +82,7 @@ public final class TileDialog {
         d.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         d.getDialogPane().setContent(new VBox(14, main, options));
         // Most tiles start from a topic, so a new tile opens the browser first. Cancelling it cancels the tile.
-        if (isNew && !pickTopic()) return false;
+        if (isNew && !TOPIC_OPTIONAL.contains(type.getValue().id()) && !pickTopic()) return false;
 
         while (true) {
             if (d.showAndWait().filter(b -> b == ButtonType.OK).isEmpty()) return false;
@@ -93,6 +97,10 @@ public final class TileDialog {
     /** Open the topic browser and fill in the picked topic. Returns false when the user cancelled it. */
     private boolean pickTopic() {
         return TopicBrowser.pick().map(t -> {
+            if (t == TopicBrowser.TYPE_IT) { // straight to the form, to type it
+                topic.requestFocus();
+                return true;
+            }
             topic.setText(t.path());
             if (!titleChosen) { title.setText(t.name()); titleChosen = false; }
             if (!typeChosen) { type.setValue(TileTypes.suggest(t)); typeChosen = false; }
@@ -102,7 +110,7 @@ public final class TileDialog {
 
     /** What's wrong with the form, or null if it can be saved. */
     private String problem() {
-        if (topic.getText().isBlank()) return "Pick or type a topic.";
+        if (topic.getText().isBlank() && !TOPIC_OPTIONAL.contains(type.getValue().id())) return "Pick or type a topic.";
         List<Setting> opts = type.getValue().options();
         for (int i = 0; i < opts.size(); i++) {
             String v = optionValues.get(i).get().trim();
@@ -119,7 +127,8 @@ public final class TileDialog {
     private void save() {
         TileType t = type.getValue();
         json.put("type", t.id()).put("topic", topic.getText().trim())
-            .put("title", title.getText().isBlank() ? lastPart(topic.getText()) : title.getText().trim());
+            .put("title", !title.getText().isBlank() ? title.getText().trim()
+                : topic.getText().isBlank() ? t.name() : lastPart(topic.getText()));
         ObjectNode opts = json.putObject("options");
         for (int i = 0; i < t.options().size(); i++) opts.put(t.options().get(i).key(), optionValues.get(i).get().trim());
     }
@@ -146,7 +155,7 @@ public final class TileDialog {
     }
 
     private static String lastPart(String path) {
-        String p = path.trim();
+        String p = path.trim().replaceAll("/+$", ""); // a table typed with a trailing slash
         return p.substring(p.lastIndexOf('/') + 1);
     }
 }

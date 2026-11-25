@@ -9,8 +9,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
-import java.util.Arrays;
-
 /**
  * The active alerts in a WPILib Alert group (new Alert("Alerts", "Gyro not found", AlertType.kError)
  * shows up under /SmartDashboard/Alerts): errors, then warnings, then infos, each with its icon.
@@ -22,7 +20,7 @@ public final class AlertsTile extends Tile {
 
     private final StringArraySubscriber errors, warnings, infos;
     private final VBox rows = new VBox(6);
-    private String[][] shown = new String[3][];
+    private long stamp = -1;
 
     public AlertsTile(TileConfig config) {
         super(config);
@@ -34,15 +32,16 @@ public final class AlertsTile extends Tile {
 
     @Override
     public void update() {
+        long change = changeStamp(errors, warnings, infos) + (errors.exists() ? 1 : 0); // appearing counts as a change
+        if (change == stamp) return;
+        stamp = change;
         String[][] now = {errors.get(), warnings.get(), infos.get()};
-        if (Arrays.deepEquals(now, shown)) return;
-        shown = now;
         rows.getChildren().clear();
         add(now[0], ERROR, "#dc2626");
         add(now[1], WARNING, "#d97706");
         add(now[2], INFO, "#0284c7");
         int count = rows.getChildren().size();
-        if (count == 0) rows.getChildren().add(Style.styled(new Label("No alerts"), "muted"));
+        if (count == 0) rows.getChildren().add(Style.styled(new Label(errors.exists() ? "No alerts" : "No alerts at this topic yet"), "muted"));
         setHeaderValue(count == 0 ? "" : String.valueOf(count));
     }
 

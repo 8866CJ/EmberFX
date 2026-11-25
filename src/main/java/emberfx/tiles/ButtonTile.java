@@ -7,6 +7,7 @@ import emberfx.NT;
 import javafx.animation.PauseTransition;
 import javafx.css.PseudoClass;
 import javafx.scene.control.Button;
+import javafx.scene.input.MouseButton;
 import javafx.util.Duration;
 
 /**
@@ -37,6 +38,7 @@ public final class ButtonTile extends Tile {
         button.getStyleClass().add("tile-control");
         button.setMnemonicParsing(false);
         button.setOnMousePressed(e -> {
+            if (e.getButton() != MouseButton.PRIMARY) return; // right-click is for the tile menu, not the robot
             send(true);
             if (!hold() && !isCommand()) {
                 PauseTransition pulse = new PauseTransition(Duration.millis(200));
@@ -44,7 +46,7 @@ public final class ButtonTile extends Tile {
                 pulse.play();
             }
         });
-        button.setOnMouseReleased(e -> { if (hold()) send(false); });
+        button.setOnMouseReleased(e -> { if (e.getButton() == MouseButton.PRIMARY && hold()) send(false); });
         setCenter(button);
     }
 

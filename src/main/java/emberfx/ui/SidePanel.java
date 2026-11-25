@@ -39,7 +39,10 @@ final class SidePanel extends BorderPane {
 
         VBox tiles = body(heading("Tiles", null), hint("Drag a tile onto the tab, or double-click it."), gallery(addTile));
         Button refresh = new Button("Refresh");
-        refresh.setOnAction(e -> refresh());
+        refresh.setOnAction(e -> {
+            Topics.rescanProject(); // Refresh means a fresh look at the code too
+            refresh();
+        });
         summary.setWrapText(true);
         topicList.onChoose(addTopic);
         VBox topics = body(heading("Topics", refresh), summary, topicList, hint("Drag a topic onto the tab, or double-click it."));

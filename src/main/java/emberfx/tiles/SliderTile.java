@@ -18,7 +18,7 @@ public final class SliderTile extends Tile {
 
     public SliderTile(TileConfig config) {
         super(config);
-        sub = track(NT.subDouble(config.topic(), 0.0));
+        sub = track(NT.subDouble(config.topic(), Double.NaN)); // NaN = nothing yet, shown as --
         double min = config.optionDouble("min"), max = config.optionDouble("max"), step = config.optionDouble("step");
         if (!(max > min)) { min = -1; max = 1; }
         slider = new Slider(min, max, Math.max(min, Math.min(max, 0)));
@@ -39,7 +39,7 @@ public final class SliderTile extends Tile {
     public void update() {
         double robot = sub.get();
         value.setText(TextTile.number(slider.isValueChanging() ? slider.getValue() : robot, config.option("format")));
-        if (!slider.isValueChanging() && !slider.isPressed()) {
+        if (!Double.isNaN(robot) && !slider.isValueChanging() && !slider.isPressed()) {
             following = true;
             slider.setValue(robot);
             following = false;

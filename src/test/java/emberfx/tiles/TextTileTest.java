@@ -28,4 +28,9 @@ class TextTileTest {
         assertEquals("--", TextTile.text(NetworkTableValue.makeString(" "), "%.2f", "T", "F"));
         assertEquals("--", TextTile.text(NetworkTableValue.makeRaw(new byte[0]), "%.2f", "T", "F"));
     }
+
+    @Test
+    void missingNumbersShowDashes() {
+        assertEquals("--", TextTile.number(Double.NaN, "%.1f"));
+    }
 }

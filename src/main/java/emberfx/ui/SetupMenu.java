@@ -9,6 +9,7 @@ import emberfx.app.SessionLog;
 import emberfx.config.Config;
 import emberfx.config.Layouts;
 import emberfx.topics.Topics;
+import javafx.application.Platform;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
@@ -27,6 +28,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /** The main menu (top of the left bar) and everything it does: settings, robot project, layouts, Driver Station, config files. */
@@ -98,6 +101,7 @@ final class SetupMenu {
 
         Config.root().put("robotProject", dir.getAbsolutePath());
         Config.save();
+        Topics.rescanProject();
         int found = Topics.fromProject().size();
         Forms.info(found == 0
             ? "Linked, but no topics were found in the code. Topic names must be written as text in quotes, "
@@ -119,17 +123,14 @@ final class SetupMenu {
             new Forms.Field("Tabs", REPLACE_SAME_NAME, List.of(REPLACE_SAME_NAME, REPLACE_ALL), false));
         String header = "Downloads the layout from http://" + host + ":" + Layouts.ROBOT_PORT + "/.\n"
             + "The robot needs " + WEB_SERVER_LINE;
-        Forms.show("Load layout from robot", header, fields).ifPresent(values -> {
-            try {
-                Layouts.merge(Config.tabs(), Layouts.fetchFromRobot(host, values.get(0).trim()), values.get(1).equals(REPLACE_ALL));
+        Forms.show("Load layout from robot", header, fields).ifPresent(values -> background("layout-download",
+            () -> Layouts.fetchFromRobot(host, values.get(0).trim()),
+            tabs -> {
+                Layouts.merge(Config.tabs(), tabs, values.get(1).equals(REPLACE_ALL));
                 Config.save();
                 dashboard.reloadTabs();
-            } catch (IOException e) {
-                Forms.error("Couldn't load the layout: " + e.getMessage());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
+            },
+            e -> Forms.error("Couldn't load the layout: " + e.getMessage())));
     }
 
     private void saveLayoutToProject() {
@@ -148,6 +149,8 @@ final class SetupMenu {
 
     // ---- Driver Station ----
 
+    private record ScriptResult(boolean ok, String output) {}
+
     /** Runs register-ds.ps1 from the install folder, which edits the Driver Station's settings safely. */
     private void registerWithDriverStation() {
         String exe = System.getProperty("jpackage.app-path");
@@ -158,49 +161,58 @@ final class SetupMenu {
         }
         if (!Forms.confirm("Make this dashboard the one the Driver Station opens?\n"
             + "Close the Driver Station first; it rewrites its settings when it closes.")) return;
-        try {
+        background("register-ds", () -> {
             Process process = new ProcessBuilder("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass",
                 "-File", script.toString(), "-Exe", exe).redirectErrorStream(true).start();
             String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-            if (process.waitFor() == 0) Forms.info(output);
-            else Forms.error(output);
-        } catch (IOException e) {
-            Forms.error("Couldn't run " + script + ": " + e.getMessage());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+            return new ScriptResult(process.waitFor() == 0, output);
+        }, r -> {
+            if (r.ok()) Forms.info(r.output());
+            else Forms.error(r.output());
+        }, e -> Forms.error("Couldn't run " + script + ": " + e.getMessage()));
     }
 
     // ---- settings ----
 
     void showSettings() {
-        List<Forms.Field> fields = new ArrayList<>(List.of(
-            Forms.text("Team number", Integer.toString(Config.team())),
-            Forms.text("Window title", Config.title()),
-            Forms.text("Grid size (px, 1 = no snapping)", Integer.toString(Config.gridSize())),
-            Forms.text("Robot project folder", Config.robotProject())));
-        int firstModule = fields.size();
-        for (DashModule m : modules) fields.add(Forms.check("Module: " + m.name(), DashboardView.isEnabled(m)));
+        List<String> values = new ArrayList<>(List.of(Integer.toString(Config.team()), Config.title(),
+            Integer.toString(Config.gridSize()), Config.robotProject()));
+        for (DashModule m : modules) values.add(Boolean.toString(DashboardView.isEnabled(m)));
         String header = "Team number sets the robot address (10.TE.AM.2) and log file names.\n"
-            + (modules.isEmpty() ? "No team modules installed (see MODULES.md)." : "Tick the team modules to use.")
+            + (modules.isEmpty() ? "No team modules installed. Put module jars in " + Config.DIR.resolve("modules") + "."
+                : "Tick the team modules to use.")
             + "\nTeam, title and modules apply when you reopen the dashboard.";
 
-        Forms.show("Settings", header, fields).ifPresent(values -> {
-            int team, grid;
+        int team, grid;
+        while (true) { // a typo reopens the form with everything as typed, not from scratch
+            List<Forms.Field> fields = new ArrayList<>(List.of(
+                Forms.text("Team number", values.get(0)),
+                Forms.text("Window title", values.get(1)),
+                Forms.text("Grid size (px, 1 = no snapping)", values.get(2)),
+                Forms.text("Robot project folder", values.get(3))));
+            for (int i = 0; i < modules.size(); i++) {
+                fields.add(Forms.check("Module: " + modules.get(i).name(), Boolean.parseBoolean(values.get(4 + i))));
+            }
+            var result = Forms.show("Settings", header, fields);
+            if (result.isEmpty()) return;
+            values = new ArrayList<>(result.get());
             try {
                 team = Integer.parseInt(values.get(0).trim());
                 grid = Integer.parseInt(values.get(2).trim());
+                if (team < 0 || team > 25599) throw new NumberFormatException(); // 10.TE.AM.2 needs TE.AM < 256
+                break;
             } catch (NumberFormatException e) {
-                Forms.error("Team number and grid size must be whole numbers.");
-                return;
+                Forms.error("Team number must be a whole number from 0 to 25599, and grid size a whole number.");
             }
-            Config.root().put("team", team).put("title", values.get(1).trim()).put("gridSize", Math.max(1, grid))
-                .put("robotProject", values.get(3).trim());
-            for (int i = 0; i < modules.size(); i++) {
-                Config.module(modules.get(i).id()).put("enabled", Boolean.parseBoolean(values.get(firstModule + i)));
-            }
-            Config.save();
-        });
+        }
+        Config.root().put("team", team).put("gridSize", Math.max(1, grid)).put("robotProject", values.get(3).trim());
+        if (values.get(1).isBlank()) Config.root().remove("title"); // blank goes back to the default name
+        else Config.root().put("title", values.get(1).trim());
+        for (int i = 0; i < modules.size(); i++) {
+            Config.module(modules.get(i).id()).put("enabled", Boolean.parseBoolean(values.get(4 + i)));
+        }
+        Config.save();
+        dashboard.refreshTabs(); // the grid dots follow the new grid size now
     }
 
     private void showModuleSettings(DashModule module) {
@@ -208,17 +220,27 @@ final class SetupMenu {
         List<Forms.Field> fields = new ArrayList<>();
         for (Setting s : settings) fields.add(Forms.of(s, ModuleContext.value(module, s)));
 
-        Forms.show(module.name(), "Changes apply when you reopen the dashboard.", fields).ifPresent(values -> {
-            for (int i = 0; i < settings.size(); i++) {
+        while (true) { // a typo reopens the form with everything as typed
+            var result = Forms.show(module.name(), "Changes apply when you reopen the dashboard.", fields);
+            if (result.isEmpty()) return;
+            List<String> values = result.get();
+            String problem = null;
+            for (int i = 0; i < settings.size() && problem == null; i++) {
                 if (settings.get(i).kind() == Setting.Kind.NUMBER && !isNumberOrBlank(values.get(i))) {
-                    Forms.error(settings.get(i).label() + " must be a number.");
-                    return;
+                    problem = settings.get(i).label() + " must be a number.";
                 }
+            }
+            if (problem != null) {
+                Forms.error(problem);
+                fields.clear();
+                for (int i = 0; i < settings.size(); i++) fields.add(Forms.of(settings.get(i), values.get(i)));
+                continue;
             }
             ObjectNode saved = Config.obj(Config.module(module.id()), "settings");
             for (int i = 0; i < settings.size(); i++) saved.put(settings.get(i).key(), values.get(i).trim());
             Config.save();
-        });
+            return;
+        }
     }
 
     private static boolean isNumberOrBlank(String text) {
@@ -282,6 +304,20 @@ final class SetupMenu {
         } catch (IOException e) {
             Forms.error("Couldn't open " + newest + ": " + e.getMessage());
         }
+    }
+
+    /** Run slow work (network, a process) off the UI thread, then handle the result back on it. */
+    private static <T> void background(String name, Callable<T> work, Consumer<T> done, Consumer<Exception> failed) {
+        Thread t = new Thread(() -> {
+            try {
+                T result = work.call();
+                Platform.runLater(() -> done.accept(result));
+            } catch (Exception e) { // reported to the user, never dropped
+                Platform.runLater(() -> failed.accept(e));
+            }
+        }, name);
+        t.setDaemon(true);
+        t.start();
     }
 
     private static void openFolder(Path dir) {

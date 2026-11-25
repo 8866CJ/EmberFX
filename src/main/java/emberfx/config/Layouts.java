@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -32,8 +33,13 @@ public final class Layouts {
     /** Download a layout from the robot's web server. */
     public static ArrayNode fetchFromRobot(String host, String file) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
-        HttpRequest request = HttpRequest.newBuilder(URI.create("http://" + host + ":" + ROBOT_PORT + "/" + file))
-            .timeout(Duration.ofSeconds(5)).build();
+        URI uri;
+        try {
+            uri = new URI("http", null, host, ROBOT_PORT, "/" + file, null, null); // encodes spaces and the like
+        } catch (URISyntaxException e) {
+            throw new IOException("\"" + file + "\" isn't a usable file name", e);
+        }
+        HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5)).build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) {
             throw new IOException("the robot answered " + response.statusCode() + " for " + file

@@ -139,7 +139,7 @@ public final class CameraTile extends Tile {
 
     private void show(Image img, String message) {
         Platform.runLater(() -> {
-            if (img != null) view.setImage(img);
+            view.setImage(img); // null clears it, so a dead stream doesn't leave a frozen picture that looks live
             status.setText(message);
         });
     }

@@ -26,7 +26,7 @@ public final class RadialGaugeTile extends CanvasTile {
 
     public RadialGaugeTile(TileConfig config) {
         super(config);
-        sub = track(NT.subDouble(config.topic(), 0.0));
+        sub = track(NT.subDouble(config.topic(), Double.NaN)); // NaN = nothing yet, shown as --
     }
 
     @Override
@@ -42,7 +42,7 @@ public final class RadialGaugeTile extends CanvasTile {
         double min = config.optionDouble("min"), max = config.optionDouble("max");
         if (!(max > min)) { min = 0; max = 1; }
         double value = sub.get(), warn = config.optionDouble("warnAbove");
-        double at = START + (STOP - START) * Math.max(0, Math.min(1, (value - min) / (max - min)));
+        double at = Double.isNaN(value) ? START : START + (STOP - START) * Math.max(0, Math.min(1, (value - min) / (max - min)));
         Color lit = !Double.isNaN(warn) && value > warn ? WARN : LIT;
 
         double r = Math.min(w, h * 1.08) / 2 - 2; // the bottom gap lets the dial sit a little taller than the tile

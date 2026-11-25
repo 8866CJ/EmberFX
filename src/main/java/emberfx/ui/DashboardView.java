@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -357,7 +358,7 @@ public final class DashboardView {
 
     private ContextMenu tabMenu(TabPage page) {
         int i = tabs.indexOf(page);
-        MenuItem rename = Forms.item("Rename...", () -> Forms.ask("Rename tab", "Name:", page.name()).ifPresent(name -> {
+        MenuItem rename = Forms.item("Rename...", () -> askTabName("Rename tab", page.name(), page).ifPresent(name -> {
             page.rename(name);
             Config.save();
             refreshTabs();
@@ -372,7 +373,7 @@ public final class DashboardView {
     }
 
     private void addTab() {
-        Forms.ask("New tab", "Name:", "Tab " + (tabs.size() + 1)).ifPresent(name -> {
+        askTabName("New tab", "Tab " + (tabs.size() + 1), null).ifPresent(name -> {
             ObjectNode json = Config.tabs().addObject().put("name", name);
             json.putArray("tiles");
             TabPage page = new TabPage(json, this);
@@ -381,6 +382,22 @@ public final class DashboardView {
             Config.save();
             refreshTabs();
         });
+    }
+
+    /**
+     * A tab name that no other tab has (in any case), asking again after a clash.
+     * Unique names matter: Move to tab, the robot's selectTab and layout merging all go by name.
+     */
+    private Optional<String> askTabName(String title, String initial, TabPage renaming) {
+        String suggestion = initial;
+        while (true) {
+            Optional<String> name = Forms.ask(title, "Name:", suggestion);
+            if (name.isEmpty()) return name;
+            String n = name.get();
+            if (tabs.stream().noneMatch(p -> p != renaming && p.name().equalsIgnoreCase(n))) return name;
+            Forms.error("There's already a tab called \"" + n + "\".");
+            suggestion = n;
+        }
     }
 
     private void moveTab(int from, int to) {

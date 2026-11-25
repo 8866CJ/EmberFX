@@ -4,6 +4,7 @@ import emberfx.NT;
 import emberfx.config.Config;
 import emberfx.topics.FoundTopic;
 import emberfx.topics.Topics;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
@@ -17,8 +18,12 @@ import java.util.Optional;
  * Type to filter; double-click or OK to choose.
  */
 public final class TopicBrowser {
+    /** What {@link #pick()} returns when the user chose to type the topic themselves. */
+    public static final FoundTopic TYPE_IT = new FoundTopic("", "", "", false);
+
     private TopicBrowser() {}
 
+    /** The picked topic, {@link #TYPE_IT} for "Type a topic...", or empty when cancelled. */
     public static Optional<FoundTopic> pick() {
         List<FoundTopic> topics = Topics.all();
         TopicList list = new TopicList(false);
@@ -28,7 +33,11 @@ public final class TopicBrowser {
         Dialog<ButtonType> d = new Dialog<>();
         d.setTitle("Pick a topic");
         d.setHeaderText(summary(topics));
-        d.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ButtonType typeIn = new ButtonType("Type a topic...", ButtonBar.ButtonData.LEFT);
+        d.getDialogPane().getButtonTypes().addAll(ButtonType.OK, typeIn, ButtonType.CANCEL);
+        // Without a picked row, OK (and Enter in the search box) does nothing instead of acting like Cancel.
+        d.getDialogPane().lookupButton(ButtonType.OK).disableProperty()
+            .bind(list.listView().getSelectionModel().selectedItemProperty().isNull());
         d.getDialogPane().setContent(new VBox(8, list,
             new Label("Tip: use Menu > Link robot project to see topics before the robot is on.")));
         list.onChoose(t -> {
@@ -36,7 +45,8 @@ public final class TopicBrowser {
             d.close();
         });
         list.focusSearch();
-        return d.showAndWait().filter(b -> b == ButtonType.OK).map(b -> list.selected());
+        return d.showAndWait().flatMap(b -> b == ButtonType.OK ? Optional.ofNullable(list.selected())
+            : b == typeIn ? Optional.of(TYPE_IT) : Optional.empty());
     }
 
     /** "12 on the robot, 3 more found only in your code." */

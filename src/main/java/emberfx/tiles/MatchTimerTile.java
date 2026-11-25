@@ -33,6 +33,7 @@ public final class MatchTimerTile extends Tile {
     private final Label match = Style.styled(new Label(), "muted");
     private final Label game = new Label();
     private final String clockStyle;
+    private final HBox info; // mode, alliance, match, game data: shown only when the robot publishes them
 
     public MatchTimerTile(TileConfig config) {
         super(config);
@@ -47,7 +48,7 @@ public final class MatchTimerTile extends Tile {
 
         clockStyle = "-fx-font-family: Consolas; -fx-font-weight: bold; -fx-font-size: "
             + Math.max(12, config.optionDouble("fontSize")) + "px; -fx-text-fill: ";
-        HBox info = new HBox(8, mode, alliance, match, game);
+        info = new HBox(8, mode, alliance, match, game);
         info.setAlignment(Pos.CENTER);
         VBox box = new VBox(4, clock, info);
         box.setAlignment(Pos.CENTER);
@@ -61,6 +62,7 @@ public final class MatchTimerTile extends Tile {
         double caution = config.optionDouble("caution"), danger = config.optionDouble("danger");
         clock.setStyle(clockStyle + (t >= 0 && t <= danger ? DANGER : t >= 0 && t <= caution ? CAUTION : NORMAL) + ";");
 
+        info.setVisible(control.exists());
         int bits = (int) control.get();
         mode.setText(mode(bits));
         boolean onRed = red.get();

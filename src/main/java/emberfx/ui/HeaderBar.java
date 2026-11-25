@@ -80,7 +80,8 @@ final class HeaderBar extends HBox {
         };
         target.valueProperty().addListener((obs, oldValue, newValue) -> {
             customHost.setVisible(CUSTOM.equals(newValue));
-            if (!customHost.isVisible()) connect.run();
+            if (customHost.isVisible()) customHost.requestFocus(); // type the address, then Enter connects
+            else connect.run();
         });
         customHost.setOnAction(e -> connect.run());
         target.getSelectionModel().select(0);

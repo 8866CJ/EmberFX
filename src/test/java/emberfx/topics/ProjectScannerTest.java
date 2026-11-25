@@ -1,7 +1,11 @@
 package emberfx.topics;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -55,5 +59,13 @@ class ProjectScannerTest {
     void namesDropTheTablePrefix() {
         assertEquals("Shooter RPM", scan().get("/SmartDashboard/Shooter/RPM").name());
         assertEquals("Tuning kP", scan().get("/Tuning/kP").name());
+    }
+
+    @Test
+    void aProjectInsideABuildFolderIsStillScanned(@TempDir Path dir) throws IOException {
+        Path source = dir.resolve("build/Robot2026/src/main/java/Robot.java"); // "build" is above the project
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, "SmartDashboard.putNumber(\"Speed\", speed);");
+        assertEquals(1, ProjectScanner.scan(dir.resolve("build/Robot2026")).size());
     }
 }

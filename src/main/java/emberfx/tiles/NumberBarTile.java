@@ -15,7 +15,7 @@ public final class NumberBarTile extends Tile {
 
     public NumberBarTile(TileConfig config) {
         super(config);
-        sub = track(NT.subDouble(config.topic(), 0.0));
+        sub = track(NT.subDouble(config.topic(), Double.NaN)); // NaN = nothing yet, shown as --
         bar.setMaxWidth(Double.MAX_VALUE);
         bar.setPrefHeight(22);
         setCenter(new VBox(8, bar, value));
@@ -24,7 +24,7 @@ public final class NumberBarTile extends Tile {
     @Override
     public void update() {
         double v = sub.get(), min = config.optionDouble("min"), max = config.optionDouble("max");
-        bar.setProgress(max > min ? Math.max(0, Math.min(1, (v - min) / (max - min))) : 0);
+        bar.setProgress(Double.isNaN(v) ? 0 : max > min ? Math.max(0, Math.min(1, (v - min) / (max - min))) : 0);
         value.setText(TextTile.number(v, config.option("format")));
     }
 }

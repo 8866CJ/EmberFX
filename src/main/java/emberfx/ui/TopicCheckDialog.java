@@ -95,6 +95,7 @@ public final class TopicCheckDialog {
             body.getChildren().add(section("Waiting for the dashboard", "The robot reads these; a tile writes them.",
                 r.waiting(), t -> row(t, type(t))));
         }
+        if (body.getScene() != null) body.getScene().getWindow().sizeToScene(); // the dialog was sized for "Scanning..."
     }
 
     private static <T> VBox section(String title, String hint, List<T> items, Function<T, HBox> rows) {

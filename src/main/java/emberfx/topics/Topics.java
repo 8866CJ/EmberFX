@@ -12,6 +12,10 @@ import java.util.TreeMap;
 /** Every topic the user can pick: live ones from the robot plus ones found in the linked robot project. */
 public final class Topics {
     private static final System.Logger LOG = System.getLogger(Topics.class.getName());
+    private static final long SCAN_REUSE_MS = 10_000;
+    private static String scannedProject = "";
+    private static long scannedAt;
+    private static List<FoundTopic> scanned = List.of();
 
     private Topics() {}
 
@@ -27,15 +31,28 @@ public final class Topics {
         return new ArrayList<>(byPath.values());
     }
 
-    /** Topics in the linked robot project's code, or none if no project is linked or it can't be read. */
-    public static List<FoundTopic> fromProject() {
+    /**
+     * Topics in the linked robot project's code, or none if no project is linked or it can't be read.
+     * A scan is reused for a few seconds, because the Topics panel and Browse ask often and a big folder is slow.
+     */
+    public static synchronized List<FoundTopic> fromProject() {
         String project = Config.robotProject();
         if (project.isEmpty()) return List.of();
+        long now = System.currentTimeMillis();
+        if (project.equals(scannedProject) && now - scannedAt < SCAN_REUSE_MS) return scanned;
         try {
-            return ProjectScanner.scan(Path.of(project));
+            scanned = List.copyOf(ProjectScanner.scan(Path.of(project)));
         } catch (IOException | RuntimeException e) {
             LOG.log(System.Logger.Level.WARNING, "Couldn't scan the robot project at " + project, e);
-            return List.of();
+            scanned = List.of();
         }
+        scannedProject = project;
+        scannedAt = now;
+        return scanned;
+    }
+
+    /** Scan the project again on the next request, e.g. after Refresh or linking a project. */
+    public static synchronized void rescanProject() {
+        scannedAt = 0;
     }
 }

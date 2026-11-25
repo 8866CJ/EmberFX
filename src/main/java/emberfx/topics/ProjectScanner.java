@@ -38,16 +38,17 @@ public final class ProjectScanner {
     public static List<FoundTopic> scan(Path project) throws IOException {
         Map<String, FoundTopic> found = new LinkedHashMap<>();
         try (Stream<Path> files = Files.walk(project)) {
-            for (Path file : files.filter(ProjectScanner::isSource).toList()) scanFile(file, found);
+            for (Path file : files.filter(p -> isSource(project.relativize(p))).toList()) scanFile(file, found);
         } catch (UncheckedIOException e) {
             throw e.getCause();
         }
         return new ArrayList<>(found.values());
     }
 
+    /** @param p relative to the project, so a project inside e.g. C:\\build\\Robot is still scanned */
     private static boolean isSource(Path p) {
         for (Path part : p) if (SKIP_DIRS.contains(part.toString())) return false;
-        String name = p.getFileName().toString();
+        String name = String.valueOf(p.getFileName());
         return name.endsWith(".java") || name.endsWith(".kt");
     }
 
