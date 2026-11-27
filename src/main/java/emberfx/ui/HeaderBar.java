@@ -30,6 +30,11 @@ final class HeaderBar extends HBox {
 
     private final Label pageTitle = Style.styled(new Label(), "page-title");
     private final Label editing = Style.styled(new Label("Editing"), "badge");
+    private static final PseudoClass REPLAY = PseudoClass.getPseudoClass("replay");
+    private final ComboBox<String> target;
+    private final TextField customHost;
+    private Runnable connect;
+    private boolean replaying;
 
     HeaderBar(Node moduleItems) {
         getStyleClass().add("toolbar-bar");
@@ -38,10 +43,12 @@ final class HeaderBar extends HBox {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         TextField customHost = new TextField();
-        ComboBox<String> target = robotPicker(customHost);
+        target = robotPicker(customHost);
+        this.customHost = customHost;
         getChildren().addAll(pageTitle, editing, spacer, moduleItems, recording, customHost, target, status);
 
         NT.onConnectionChange(connected -> Platform.runLater(() -> {
+            if (replaying) return; // the pill says Replay until the replay ends
             status.setText(connected ? "Connected" : "Disconnected");
             status.pseudoClassStateChanged(CONNECTED, connected);
         }));
@@ -51,6 +58,21 @@ final class HeaderBar extends HBox {
     void setPage(String name, boolean editable) {
         pageTitle.setText(name);
         editing.setVisible(editable);
+    }
+
+    /**
+     * Replay mode on (with the log's name) or off (null). While on, the robot picker is disabled and the
+     * pill says Replay; turning it off reconnects to the robot picked in the picker.
+     */
+    void setReplay(String source) {
+        replaying = source != null;
+        target.setDisable(replaying);
+        customHost.setDisable(replaying);
+        status.pseudoClassStateChanged(REPLAY, replaying);
+        status.pseudoClassStateChanged(CONNECTED, false);
+        status.setText(replaying ? "Replay" : "Disconnected");
+        status.setTooltip(replaying ? new Tooltip("Replaying " + source) : null);
+        if (!replaying) connect.run();
     }
 
     /** Refresh the REC label. Called every frame. */
@@ -63,7 +85,7 @@ final class HeaderBar extends HBox {
      * The robot address picker: the team's roboRIO, the local simulator, or a typed address.
      * Choosing an entry connects right away; a custom address connects when Enter is pressed.
      */
-    private static ComboBox<String> robotPicker(TextField customHost) {
+    private ComboBox<String> robotPicker(TextField customHost) {
         String robot = DashboardView.robotHost(Config.team());
         ComboBox<String> target = new ComboBox<>(FXCollections.observableArrayList(
             robot.isEmpty() ? "Robot (set team in Settings)" : "Physical Robot (" + robot + ")", "Localhost (" + LOCALHOST + ")", CUSTOM));
@@ -73,7 +95,7 @@ final class HeaderBar extends HBox {
         customHost.managedProperty().bind(customHost.visibleProperty());
         customHost.setVisible(false);
 
-        Runnable connect = () -> {
+        connect = () -> {
             int i = target.getSelectionModel().getSelectedIndex();
             String host = i == 0 ? robot : i == 1 ? LOCALHOST : customHost.getText().trim();
             if (!host.isEmpty()) NT.startClient(host);

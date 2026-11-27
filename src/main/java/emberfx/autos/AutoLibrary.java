@@ -10,10 +10,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Reads a robot project's autos from src/main/deploy: PathPlanner ({@code pathplanner/autos/*.auto},
@@ -51,6 +53,7 @@ public final class AutoLibrary {
     private final Map<Path, Cached> files = new HashMap<>();
     private final Map<String, Source> sources = new LinkedHashMap<>();
     private final Map<String, Entry> previews = new HashMap<>();
+    private final Set<String> warnedOld = new HashSet<>(); // "file@mtime" already reported as an unsupported version
 
     /** The library for a robot project folder, shared by every tile; null when the folder is blank or missing. */
     public static synchronized AutoLibrary shared(String project) {
@@ -97,7 +100,9 @@ public final class AutoLibrary {
             JsonNode j = load(f.toPath());
             if (j == null) continue;
             if (isChoreo ? choreoVersionOk(j) : ppVersionOk(j)) sources.put(name, new Source(f.toPath(), isChoreo));
-            else LOG.log(System.Logger.Level.WARNING, "Skipping " + f + ": unsupported version");
+            else if (warnedOld.add(f + "@" + f.lastModified())) { // once per file version, not every refresh
+                LOG.log(System.Logger.Level.WARNING, "Skipping " + f + ": unsupported version");
+            }
         }
     }
 

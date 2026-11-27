@@ -11,6 +11,9 @@ import emberfx.DashModule;
 import emberfx.ModuleContext;
 import emberfx.NT;
 import emberfx.config.Config;
+import emberfx.replay.LogIndex;
+import emberfx.tiles.LazyPublisher;
+import emberfx.replay.Replayer;
 import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -26,6 +29,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.Separator;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.TextInputControl;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -89,6 +93,8 @@ public final class DashboardView {
     private final List<Runnable> moduleHeaderUpdates = new ArrayList<>();
     private final Set<Runnable> failedUpdates = new HashSet<>(); // module updates that threw; skipped from then on
     private Object selected; // the TabPage or ModuleTab showing
+    private Replayer replayer;  // non-null while a log is being replayed
+    private ReplayBar replayBar;
 
     /**
      * @param modules  team modules found at startup; the enabled ones are started here
@@ -110,7 +116,7 @@ public final class DashboardView {
 
         pages.setOpacity(DISCONNECTED_OPACITY);
         NT.onConnectionChange(connected -> Platform.runLater(() -> {
-            pages.setOpacity(connected ? 1.0 : DISCONNECTED_OPACITY);
+            if (replayer == null) pages.setOpacity(connected ? 1.0 : DISCONNECTED_OPACITY); // replay data is never stale
             if (!Config.locked()) topicRefresh.playFromStart(); // after the robot has announced its topics
         }));
         startFrameLoop();
@@ -274,6 +280,11 @@ public final class DashboardView {
     /** Ctrl+1 to Ctrl+9 switch tabs, Ctrl+E turns edit mode on and off. */
     private void installShortcuts() {
         root.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (replayBar != null && e.getCode() == KeyCode.SPACE && !(e.getTarget() instanceof TextInputControl)) {
+                replayBar.togglePlaying(); // Space plays and pauses a replay
+                e.consume();
+                return;
+            }
             if (!e.isShortcutDown()) return;
             if (e.getCode() == KeyCode.E) {
                 toggleEditing();
@@ -298,12 +309,42 @@ public final class DashboardView {
             @Override
             public void handle(long now) {
                 header.update();
+                if (replayer != null) replayer.seek(replayBar.tick(now)); // before the tiles read their values
                 readRobotRequests();
                 if (selected instanceof TabPage page) page.update();
                 if (selected instanceof ModuleTab tab && tab.update() != null) runModuleUpdate(tab.update());
                 moduleHeaderUpdates.forEach(DashboardView.this::runModuleUpdate);
             }
         }.start();
+    }
+
+    // ---- replay ----
+
+    /**
+     * Show a log instead of the robot: disconnect, then publish the log's values into this dashboard's
+     * own NetworkTables at the replay time, so every tile replays without knowing it.
+     */
+    void startReplay(LogIndex index) {
+        if (replayer != null) stopReplay();
+        NT.stopClient(); // also ends the session log: nothing is recorded while replaying
+        replayer = new Replayer(index, NT.instance());
+        replayBar = new ReplayBar(index, this::stopReplay);
+        main.setBottom(replayBar);
+        header.setReplay(String.join(", ", index.sourceNames()));
+        pages.setOpacity(1.0);
+        sidePanel.refresh();
+    }
+
+    /** Back to the robot: remove the log's values and reconnect. */
+    void stopReplay() {
+        if (replayer == null) return;
+        replayer.close();
+        replayer = null;
+        LazyPublisher.dropAll(); // a control used during the replay must not reach the robot
+        replayBar = null;
+        main.setBottom(null);
+        pages.setOpacity(DISCONNECTED_OPACITY);
+        header.setReplay(null); // reconnects to the robot picked in the toolbar
     }
 
     /** Notifications and tab changes the robot code asked for since the last frame. */

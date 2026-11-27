@@ -116,6 +116,16 @@ While connected, the dashboard saves **everything** the robot publishes over Net
 - **Menu > Open latest log** opens the newest file with its usual program (AdvantageScope, if it's installed). In AdvantageScope, robot data is under `NT:/`.
 - Anything that happens while disconnected isn't in these files. Check the Driver Station logs for that.
 
+## Replaying logs
+
+**Menu > Open log to replay** plays a log back through your tabs, so every tile shows what it showed (or would have shown) at that moment of the match.
+
+- Opens `.wpilog` files (EmberFX's own logs, robot `DataLogManager` logs, AdvantageKit logs) and CTRE `.hoot` files. Pick several at once to merge them, e.g. the roboRIO and CANivore hoot files of one match.
+- `.hoot` files are converted with CTRE's free **owlet** tool, the same way AdvantageScope does it. EmberFX finds the owlet versions AdvantageScope has downloaded (or Phoenix Tuner X's), picks the one matching the log, and asks for `owlet.exe` if there is none. Converted files are cached in `%USERPROFILE%\.emberfx\replay-cache`; delete that folder to free the space.
+- Phoenix signals appear as topics like `/Phoenix6/<bus>/TalonFX-1/Velocity`, and CTRE swerve telemetry as `/DriveState/...`, so the Field and Swerve tiles replay it directly.
+- The bar along the bottom: play/pause (Space), speed (click to cycle 0.25x to 4x), and a timeline tinted by robot mode (auto amber, teleop green); click or drag anywhere on it to jump. **Exit replay** reconnects to the robot.
+- While replaying, the dashboard is disconnected from the robot and records nothing. A control used during a replay never reaches the robot afterwards.
+
 ## Files
 
 | Path | What |
@@ -173,6 +183,8 @@ src/main/java/emberfx/
     Config                       config.json (schema in its class comment)
     Layouts                      layout files: load from the robot, save to the robot project, merge
   autos/                         PathPlanner and Choreo auto files from the robot project, for the auto preview
+  replay/                        log replay: LogIndex (loads and merges .wpilog), Replayer (publishes a moment
+                                 into NT), HootConverter (.hoot via CTRE owlet)
   structs/                       WPILib struct schemas and decoding (StructRegistry, StructSubscriber, Poses)
   tiles/
     Tile                         base class: title, update(), track() for NT handles
@@ -194,6 +206,7 @@ src/main/java/emberfx/
     TopicList                    searchable, draggable topic list
     Notifications                pop-up messages from robot code (Elastic-compatible)
     TopicCheckDialog             Menu > Check topics
+    ReplayLoader, ReplayBar      Menu > Open log to replay, and the replay controls
     SidePanel, TopicBrowser      the edit-mode Tiles/Topics panel and the Browse dialog, both built on TopicList
     Forms, Style                 shared dialogs; colors and small builders
 src/main/resources/emberfx/ui/

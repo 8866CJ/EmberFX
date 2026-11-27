@@ -54,6 +54,7 @@ final class SetupMenu {
             Forms.item("Link robot project...", this::linkProject),
             Forms.item("Check topics...", TopicCheckDialog::show),
             new SeparatorMenuItem(),
+            Forms.item("Open log to replay...", () -> ReplayLoader.open(window(), dashboard)),
             Forms.item("Load layout from robot...", this::loadLayoutFromRobot),
             Forms.item("Save layout to robot project", this::saveLayoutToProject),
             Forms.item("Use as Driver Station dashboard...", this::registerWithDriverStation),

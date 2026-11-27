@@ -31,6 +31,14 @@ public final class LazyPublisher<P extends Publisher> implements AutoCloseable {
         });
     }
 
+    /**
+     * Drop every control's publisher now, as on a disconnect. The dashboard calls this when a replay ends,
+     * so a control pressed during the replay isn't re-sent to the robot on reconnect.
+     */
+    public static void dropAll() {
+        OPEN.forEach(LazyPublisher::drop);
+    }
+
     private final Supplier<P> create;
     private P pub;
 
